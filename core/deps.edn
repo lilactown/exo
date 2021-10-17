@@ -1,0 +1,9 @@
+{:paths ["src"]
+ :deps {lilactown/autonormal {:mvn/version "LATEST"}}
+ :aliases
+ {:dev {:extra-paths ["test"]
+        :extra-deps {org.clojure/clojurescript {:mvn/version "LATEST"}}}
+  :test {:extra-paths ["test"]
+         :extra-deps
+         {lambdaisland/kaocha {:mvn/version "1.0.732"}
+          lambdaisland/kaocha-cljs {:mvn/version "0.0-71"}}}}}
