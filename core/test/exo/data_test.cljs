@@ -1,7 +1,7 @@
-(ns link.data-test
+(ns exo.data-test
   (:require
    [clojure.test :as t]
-   [link.data :as l.d]))
+   [exo.data :as l.d]))
 
 
 (defn spy
@@ -97,6 +97,9 @@
         (t/is (empty? (.-query-watches dc)) "cleans up query-watches")
         (t/is (empty? (get (.-entity->queries dc) [:bar/id 0]))
               "cleans up entity->queries relations")))))
+
+
+(t/deftest cache-eviction)
 
 
 (comment

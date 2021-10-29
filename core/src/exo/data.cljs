@@ -1,6 +1,6 @@
-(ns link.data
+(ns exo.data
   (:require
-   [autonormal.core :as a]
+   [pyramid.core :as p]
    [clojure.set :as c.set]))
 
 
@@ -45,7 +45,7 @@ the last watcher."))
 
   IDataCache
   (-add-query-watch [this query f]
-    (let [{:keys [data entities]} (a/pull-report state query)
+    (let [{:keys [data entities]} (p/pull-report state query)
           entity->queries' (transient entity->queries)]
       ;; add entity => query
       (doseq [entity entities]
@@ -109,7 +109,7 @@ the last watcher."))
 
 
 (defn data-cache
-  ([] (data-cache (a/db [])))
+  ([] (data-cache (p/db [])))
   ([db] (->DataCache db {} {})))
 
 
@@ -118,7 +118,7 @@ the last watcher."))
   entities the data pertains of changes."
   [dc query data]
   (let [old-state (.-state dc)
-        {:keys [db entities]} (a/add-report old-state data)]
+        {:keys [db entities]} (p/add-report old-state data)]
     (set! (.-state dc) db)
     (when-not (nil? (get-in (.-query-watches dc) [query :fs]))
       (-update-query-entities dc query entities)
@@ -131,7 +131,7 @@ the last watcher."))
   [dc query f]
   (let [prev-data (atom nil)
         f' (fn [state]
-             (let [{:keys [data entities]} (a/pull-report state query)]
+             (let [{:keys [data entities]} (p/pull-report state query)]
                (when (not= @prev-data data)
                  (reset! prev-data data)
                  (-update-query-entities dc query entities)
