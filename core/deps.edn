@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps {town.lilac/pyramid {:mvn/version "3.1.2"}}
+ :deps {town.lilac/pyramid {:mvn/version "3.1.4"}}
  :aliases
  {:dev {:extra-paths ["test"]
         :extra-deps {org.clojure/clojurescript {:mvn/version "LATEST"}}}
