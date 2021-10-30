@@ -3,5 +3,5 @@
  :builds {:app {:target :browser
                 :output-dir "public/js"
                 :asset-path "/js"
-                :modules {:main {:entries [exo.example.core]
-                                 :init-fn exo.example.core/start}}}}}
+                :modules {:main {:entries [exo.example.app]
+                                 :init-fn exo.example.app/start}}}}}

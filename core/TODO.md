@@ -1,5 +1,9 @@
 # TO DO
 
+http link
+
+pathom link
+
 memoize query results so that we don't have to pull on mount
 
 cache eviction

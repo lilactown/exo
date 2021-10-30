@@ -1,4 +1,4 @@
-(ns exo.example.core
+(ns exo.example.app
   (:require
    ["react" :as r]
    ["react-dom" :as rdom]
