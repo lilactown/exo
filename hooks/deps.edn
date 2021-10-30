@@ -1,0 +1,2 @@
+{:paths ["src"]
+ :deps {town.lilac/exo-core {:local/root "../core"}}}
