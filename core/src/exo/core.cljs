@@ -44,6 +44,45 @@
 
 
 (defn preload!
-  [config query opts]
-  (load-data! config query opts)
-  nil)
+  ([config query]
+   (load-data! config query))
+  ([config query opts]
+   (load-data! config query opts)
+   nil))
+
+
+(defn current-status
+  ([config query] (current-status config query {}))
+  ([config query opts]
+   (-> (:request-store config)
+       (deref)
+       (get-in [query opts])
+       (some-> (deref)
+               (:status)))))
+
+
+(defn subscribe-status!
+  ([config query f]
+   (subscribe-status! config query {} f))
+  ([config query opts f]
+   (let [k (gensym "exo-status")
+         ;; need to store current req to unsub
+         current-req (atom nil)
+         request-store (:request-store config)]
+     (add-watch
+      request-store k
+      (fn [_ _ o n]
+        (let [old-req (get-in o [query opts])
+              new-req (get-in n [query opts])]
+          (when (not= old-req new-req)
+            (f (:status @new-req))
+            (add-watch
+             new-req
+             k
+             (fn [_ _ _ n]
+               (f (:status n))))
+            (reset! current-req new-req)))))
+     (fn unsub-status []
+       (when-let [*req @current-req]
+         (remove-watch *req k)
+         (remove-watch request-store k))))))

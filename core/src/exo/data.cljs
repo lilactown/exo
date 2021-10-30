@@ -116,7 +116,7 @@ the last watcher."))
 (defn add-data!
   "Adds new data to the normalized cache, and notifies anyone listening to the
   entities the data pertains of changes."
-  [dc query data]
+  [^IDataCache dc query data]
   (let [old-state (.-state dc)
         {:keys [db entities]} (p/add-report old-state data)]
     (set! (.-state dc) db)
@@ -124,6 +124,11 @@ the last watcher."))
       (-update-query-entities dc query entities)
       (-notify-entity-watches! dc query entities))
     db))
+
+
+(defn pull
+  [dc query]
+  (p/pull @dc query))
 
 
 (defn subscribe!
