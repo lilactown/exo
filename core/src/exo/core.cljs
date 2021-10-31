@@ -19,19 +19,19 @@
    :network (net/compose-network-fns network)})
 
 
-(defn load-data!
+(defn load-query!
   "Loads a query from the network, storing the state of the request and, on
   completion, the resulting data in the cache.
 
   Returns a ref containing the current state of the request."
-  ([config query] (load-data! config query {}))
+  ([config query] (load-query! config query {}))
   ([{:keys [request-store
             data-cache
             network]
      :as _config}
     query
     opts]
-   (let [*stored-req (get request-store [query opts])
+   (let [*stored-req (get-in @request-store [query opts])
          *req (if (and (some? *stored-req) (net/pending? @*stored-req))
                 ;; we already have a pending request during this tick, don't
                 ;; start a new one
@@ -43,16 +43,19 @@
                      (fn [data]
                        (data/add-data! data-cache query data)
                        data))
-                    (net/request->ref)))]
-     (swap! request-store assoc-in [query opts] *req)
+                    (net/request->ref)
+                    (doto (->>
+                           (swap! request-store assoc-in [query opts])))))]
      *req)))
 
 
 (defn preload!
+  "Loads a query from the network, storing the state of the request and, on
+  completion, the resulting data in the cache."
   ([config query]
-   (load-data! config query))
+   (load-query! config query))
   ([config query opts]
-   (load-data! config query opts)
+   (load-query! config query opts)
    nil))
 
 

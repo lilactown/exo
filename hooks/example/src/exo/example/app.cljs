@@ -53,8 +53,8 @@
       (:data-cache)
       #_(deref)
       #_(pyramid.core/pull (exo/parameterize-query
-                          best-friend-query
-                          {:id 1}))
+                            best-friend-query
+                            {:id 1}))
       (.-query-watches))
 
   (edn-query-language.core/query->ast
@@ -62,9 +62,6 @@
     best-friend-query
     {:id 1}))
   )
-
-
-
 
 
 (def people-query
@@ -81,10 +78,10 @@
 
 (defnc people-list
   [{:keys [on-navigate-details]}]
-  (let [[data status] (exo.hooks/use-preloaded-query people-query)]
+  (let [{:keys [data loading?]} (exo.hooks/use-query people-query)]
     (d/div
      ;; when we re-fetch, turn opacity down
-     {:style {:opacity (if (= :pending status) 0.5 1)}}
+     {:style {:opacity (if loading? 0.5 1)}}
      (d/h2 "People")
      (if (empty? (:people data)) ; initial state
        "Loading..."
@@ -101,9 +98,10 @@
 
 (defnc person-best-friend
   [{:keys [id]}]
-  (let [[data status] (exo.hooks/use-preloaded-query (exo/parameterize-query
-                                                      best-friend-query
-                                                      {:id id}))
+  (let [{:keys [data status]} (exo.hooks/use-query
+                               (exo/parameterize-query
+                                best-friend-query
+                                {:id id}))
         {:keys [best-friend]} data]
     (d/div
      (if (= :rejected status)
@@ -115,12 +113,13 @@
 
 (defnc person-details
   [{:keys [id on-back]}]
-  (let [[data status] (exo.hooks/use-preloaded-query (exo/parameterize-query
-                                                      person-query
-                                                      {:id id}))
+  (let [{:keys [data loading?]} (exo.hooks/use-query
+                                 (exo/parameterize-query
+                                  person-query
+                                  {:id id}))
         details (get data [:person/id id])]
     (d/div
-     {:style {:opacity (if (= :pending status) 0.5 1)}}
+     {:style {:opacity (if loading? 0.5 1)}}
      (d/h2
       (d/a
        {:on-click #(do
@@ -135,26 +134,24 @@
 
 (defnc app
   []
-  (let [[[screen params] set-screen] (hooks/use-state [:people])]
-    (helix.core/provider
-     {:context exo.hooks/exo-config-context
-      :value exo-config}
-     (case screen
-       :people ($ people-list
-                  {:on-navigate-details
-                   (fn [id]
-                     (exo/preload! exo-config (exo/parameterize-query
-                                               person-query
-                                               {:id id}))
-                     (exo/preload! exo-config (exo/parameterize-query
-                                               best-friend-query
-                                               {:id id}))
-                     (set-screen [:details {:id id}]))})
-       :details ($ person-details
-                   {:id (:id params)
-                    :on-back (fn []
-                               (exo/preload! exo-config people-query)
-                               (set-screen [:people]))})))))
+  (let [[[screen params] set-screen] (hooks/use-state [:people])
+        exo-config (exo.hooks/use-config)]
+    (case screen
+      :people ($ people-list
+                 {:on-navigate-details
+                  (fn [id]
+                    (exo/preload! exo-config (exo/parameterize-query
+                                              person-query
+                                              {:id id}))
+                    (exo/preload! exo-config (exo/parameterize-query
+                                              best-friend-query
+                                              {:id id}))
+                    (set-screen [:details {:id id}]))})
+      :details ($ person-details
+                  {:id (:id params)
+                   :on-back (fn []
+                              (exo/preload! exo-config people-query)
+                              (set-screen [:people]))}))))
 
 
 #_(defonce root (rdom/createRoot (js/document.getElementById "app")))
@@ -164,4 +161,10 @@
   []
   (exo/preload! exo-config people-query)
   #_(.render root ($ app))
-  (rdom/render ($ r/StrictMode ($ app)) (js/document.getElementById "app")))
+  (rdom/render
+   ($ r/StrictMode
+      (helix.core/provider
+       {:context exo.hooks/exo-config-context
+        :value exo-config}
+       ($ app)))
+   (js/document.getElementById "app")))

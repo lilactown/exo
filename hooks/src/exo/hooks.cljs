@@ -6,25 +6,13 @@
    [exo.data]))
 
 
-(defn- use-stable-reference
-  [value]
-  (let [^js last-value (r/useRef value)
-        ret-value (if (not= (.-current last-value) value)
-                    value
-                    (.-current last-value))]
-    (r/useEffect
-     #(set! (.-current last-value) ret-value)
-     #js [ret-value])
-    ret-value))
-
-
 (defonce exo-config-context (r/createContext))
 
 
-(defn use-preloaded-query
+(defn use-query
   [query]
-  (let [stable-query (use-stable-reference query)
-        config (r/useContext exo-config-context)
+  (let [config (r/useContext exo-config-context)
+        query-hash (hash query)
         ;; we need to provide a synchronous, unscoped way of getting the results
         ;; of a query, rather than relying on subscribe! to pass the value to
         ;; some callback.
@@ -36,13 +24,13 @@
                        (r/useMemo
                         #(exo.data/pull
                           (:data-cache config)
-                          stable-query)
+                          query)
                         #js []))
         subscribe-data
         (r/useCallback
          (fn [cb]
            (let [[result unsub] (exo.data/subscribe!
-                                 (:data-cache config) stable-query
+                                 (:data-cache config) query
                                  (fn [result]
                                    (set! (.-current results-store) result)
                                    (cb)))]
@@ -50,21 +38,38 @@
              ;; so if we have results put them in the store now
              (set! (.-current results-store) result)
              unsub))
-         #js [stable-query config])
+         #js [query-hash config])
 
         subscribe-status
         (r/useCallback
          (fn [cb]
            (exo/subscribe-status!
-            config stable-query
+            config query
             cb))
-         #js [stable-query config])
+         #js [query-hash config])
 
-        data #_{:people [{:person/id 0 :person/name "Rachel"}]}
-        (useSyncExternalStore
+        data (useSyncExternalStore
               subscribe-data
               #(.-current results-store))
+
         status (useSyncExternalStore
                 subscribe-status
-                #(exo/current-status config query))]
-    #js [data status]))
+                #(exo/current-status config query))
+
+        refetch (r/useCallback
+                 #(exo/preload! config query)
+                 #js [(hash query) config])]
+    (r/useEffect
+     (fn []
+       (refetch)
+       js/undefined)
+     #js [refetch])
+    {:data data
+     :status status
+     :loading? (= :pending status)
+     :refetch refetch}))
+
+
+(defn use-config
+  []
+  (r/useContext exo-config-context))

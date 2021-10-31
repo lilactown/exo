@@ -12,7 +12,7 @@
              {:person/id 3 :person/name "Jake"}
              {:person/id 4 :person/name "Tobias"}
              {:person/id 5 :person/name "Ax"}])
-      200))))
+      500))))
 
 
 (defn load-person
@@ -39,7 +39,7 @@
               5 {:person/id 5
                  :person/name "Ax"
                  :person/species :andalite}))
-      200))))
+      500))))
 
 
 (defn load-best-friend
@@ -52,4 +52,4 @@
          3 (res {:person/id 1})
          (rej {:status 404
                :message "No best friend data available."}))
-      500))))
+      1000))))
