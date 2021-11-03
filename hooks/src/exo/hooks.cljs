@@ -1,7 +1,7 @@
 (ns exo.hooks
   (:require
    ["react" :as r]
-   ["./useSyncExternalStore.js" :refer [useSyncExternalStore]]
+   ["use-sync-external-store/shim" :refer [useSyncExternalStore]]
    [exo.core :as exo]
    [exo.data]))
 
