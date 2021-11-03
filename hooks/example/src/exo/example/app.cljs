@@ -4,7 +4,7 @@
    ["react-dom" :as rdom]
    [exo.core :as exo]
    [exo.hooks :as exo.hooks]
-   [exo.example.data :as example.data]
+   [exo.example.api :as example.api]
    [helix.core :refer [defnc $ <>]]
    [helix.dom :as d]
    [helix.hooks :as hooks]))
@@ -17,7 +17,7 @@
                 (let [{:keys [children]} query-ast]
                   (when (and (= 1 (count children))
                              (= :people (-> children first :key)))
-                    (.then (example.data/load-people)
+                    (.then (example.api/load-people)
                            (fn [people]
                              {:people people})))))
               (fn person-link
@@ -29,7 +29,7 @@
                                     (= 1 (count children))
                                     (= :person/id (first query-key)))]
                   (when matches?
-                    (-> (example.data/load-person (second query-key))
+                    (-> (example.api/load-person (second query-key))
                         (.then (fn [person]
                                  {query-key person}))))))
               (fn best-friend-link
@@ -42,7 +42,7 @@
                              (= :best-friend query-key)
                              (some? person-id))
                     (-> person-id
-                        (example.data/load-best-friend)
+                        (example.api/load-best-friend)
                         (.then (fn [data]
                                  {(list :best-friend {:person/id person-id})
                                   data}))))))]}))
@@ -154,14 +154,17 @@
                               (set-screen [:people]))}))))
 
 
-#_(defonce root (rdom/createRoot (js/document.getElementById "app")))
+(defonce root (rdom/createRoot (js/document.getElementById "app")))
 
 
 (defn ^:dev/after-load start
   []
   (exo/preload! exo-config people-query)
-  #_(.render root ($ app))
-  (rdom/render
+  (.render root (helix.core/provider
+                 {:context exo.hooks/exo-config-context
+                  :value exo-config}
+                 ($ app)))
+  #_(rdom/render
    ($ r/StrictMode
       (helix.core/provider
        {:context exo.hooks/exo-config-context

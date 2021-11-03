@@ -1,4 +1,4 @@
-(ns exo.example.data)
+(ns exo.example.api)
 
 
 (defn load-people
