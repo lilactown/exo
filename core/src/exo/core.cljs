@@ -32,8 +32,8 @@
     query
     opts]
    (let [*stored-req (get-in @request-store [query opts])
-         *req (if (and (some? *stored-req) (net/pending? @*stored-req))
-                ;; we already have a pending request during this tick, don't
+         *req (if (and (some? *stored-req) (net/loading? @*stored-req))
+                ;; we already have a loading request during this tick, don't
                 ;; start a new one
                 *stored-req
                 (-> query
@@ -53,10 +53,10 @@
   "Loads a query from the network, storing the state of the request and, on
   completion, the resulting data in the cache."
   ([config query]
-   (load-query! config query))
+   (preload! config query {}))
   ([config query opts]
    (load-query! config query opts)
-   nil))
+   js/undefined))
 
 
 (defn current-status

@@ -33,9 +33,9 @@
     (.catch p cb)))
 
 
-(def pending :pending)
-(def resolved :resolved)
-(def rejected :rejected)
+(def loading :loading)
+(def resolved :success)
+(def rejected :error)
 
 
 (defrecord RequestState [status value])
@@ -50,24 +50,24 @@
   (atom {}))
 
 
-(defn pending?
+(defn loading?
   [req-state]
-  (= pending (:status req-state)))
+  (= loading (:status req-state)))
 
 
 (defn request->ref
   [request]
-  (let [*req (atom (->RequestState pending request))]
+  (let [*req (atom (->RequestState loading request))]
     (-> request
         (-then
          (fn [value]
-           (when (pending? @*req)
+           (when (loading? @*req)
              (swap! *req assoc
                     :status resolved
                     :value value))))
         (-catch
          (fn [error]
-           (when (pending? @*req)
+           (when (loading? @*req)
              (swap! *req assoc
                     :status rejected
                     :value error)))))

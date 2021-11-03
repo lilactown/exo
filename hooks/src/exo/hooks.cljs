@@ -3,15 +3,18 @@
    ["react" :as r]
    ["use-sync-external-store/shim" :refer [useSyncExternalStore]]
    [exo.core :as exo]
-   [exo.data]))
+   [exo.data]
+   [exo.network.core :as net]))
 
 
 (defonce exo-config-context (r/createContext))
 
 
 (defn use-query
-  [query]
-  (let [config (r/useContext exo-config-context)
+  ([query] (use-query query nil))
+  ([query {:keys [enabled?]
+           :or {enabled? true}}]
+   (let [config (r/useContext exo-config-context)
         query-hash (hash query)
         ;; we need to provide a synchronous, unscoped way of getting the results
         ;; of a query, rather than relying on subscribe! to pass the value to
@@ -56,18 +59,17 @@
                 subscribe-status
                 #(exo/current-status config query))
 
-        refetch (r/useCallback
-                 #(exo/preload! config query)
-                 #js [(hash query) config])]
+        load (r/useCallback
+              #(exo/preload! config query)
+              #js [query-hash config])]
     (r/useEffect
-     (fn []
-       (refetch)
-       js/undefined)
-     #js [refetch])
+     #(when enabled?
+        (load))
+     #js [load enabled?])
     {:data data
      :status status
-     :loading? (= :pending status)
-     :refetch refetch}))
+     :loading? (= net/loading status)
+     :refetch load})))
 
 
 (defn use-config

@@ -104,8 +104,16 @@
                                 {:id id}))
         {:keys [best-friend]} data]
     (d/div
-     (if (= :rejected status)
+     (cond
+       (= :error status)
        "No best friend data available."
+
+       (and (empty? data) (= :loading status))
+       (<>
+        (d/h4 "Best friend")
+        (d/div "Name: <...>") )
+
+       :else
        (<>
         (d/h4 "Best friend")
         (d/div "Name: " (:person/name best-friend)) ) ))))
@@ -143,7 +151,9 @@
                     (exo/preload! exo-config (exo/parameterize-query
                                               person-query
                                               {:id id}))
-                    (exo/preload! exo-config (exo/parameterize-query
+                    ;; we could preload this here, but instead we'll show how
+                    ;; w/o preloading it will fetch on mount
+                    #_(exo/preload! exo-config (exo/parameterize-query
                                               best-friend-query
                                               {:id id}))
                     (set-screen [:details {:id id}]))})
