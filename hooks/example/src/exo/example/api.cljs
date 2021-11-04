@@ -1,5 +1,8 @@
 (ns exo.example.api)
 
+;;
+;; Mock requests
+;;
 
 (defn load-people
   []
@@ -53,3 +56,46 @@
          (rej {:status 404
                :message "No best friend data available."}))
       1000))))
+
+
+;;
+;; Exo network links
+;;
+
+
+(defn people-link
+  [query-ast _opts]
+  (let [{:keys [children]} query-ast]
+    (when (and (= 1 (count children))
+               (= :people (-> children first :key)))
+      (.then (load-people)
+             (fn [people]
+               {:people people})))))
+
+(defn person-link
+  [query-ast _opts]
+  (let [{:keys [children]} query-ast
+        query-key (-> children first :key)
+        ;; is ident
+        matches? (and (vector? query-key)
+                      (= 1 (count children))
+                      (= :person/id (first query-key)))]
+    (when matches?
+      (-> (load-person (second query-key))
+          (.then (fn [person]
+                   {query-key person}))))))
+
+(defn best-friend-link
+  [query-ast _opts]
+  (let [{:keys [children]} query-ast
+        query-key (-> children first :key)
+        params (-> children first :params)
+        person-id (:person/id params)]
+    (when (and (= 1 (count children))
+               (= :best-friend query-key)
+               (some? person-id))
+      (-> person-id
+          (load-best-friend)
+          (.then (fn [data]
+                   {(list :best-friend {:person/id person-id})
+                    data}))))))

@@ -12,56 +12,9 @@
 
 (defonce exo-config
   (exo/create-config
-   {:network [(fn people-link
-                [query-ast _opts]
-                (let [{:keys [children]} query-ast]
-                  (when (and (= 1 (count children))
-                             (= :people (-> children first :key)))
-                    (.then (example.api/load-people)
-                           (fn [people]
-                             {:people people})))))
-              (fn person-link
-                [query-ast _opts]
-                (let [{:keys [children]} query-ast
-                      query-key (-> children first :key)
-                      ;; is ident
-                      matches? (and (vector? query-key)
-                                    (= 1 (count children))
-                                    (= :person/id (first query-key)))]
-                  (when matches?
-                    (-> (example.api/load-person (second query-key))
-                        (.then (fn [person]
-                                 {query-key person}))))))
-              (fn best-friend-link
-                [query-ast _opts]
-                (let [{:keys [children]} query-ast
-                      query-key (-> children first :key)
-                      params (-> children first :params)
-                      person-id (:person/id params)]
-                  (when (and (= 1 (count children))
-                             (= :best-friend query-key)
-                             (some? person-id))
-                    (-> person-id
-                        (example.api/load-best-friend)
-                        (.then (fn [data]
-                                 {(list :best-friend {:person/id person-id})
-                                  data}))))))]}))
-
-
-(comment
-  (-> exo-config
-      (:data-cache)
-      #_(deref)
-      #_(pyramid.core/pull (exo/parameterize-query
-                            best-friend-query
-                            {:id 1}))
-      (.-query-watches))
-
-  (edn-query-language.core/query->ast
-   (exo/parameterize-query
-    best-friend-query
-    {:id 1}))
-  )
+   {:network [example.api/people-link
+              example.api/person-link
+              example.api/best-friend-link]}))
 
 
 (def people-query
@@ -173,11 +126,4 @@
   (.render root (helix.core/provider
                  {:context exo.hooks/exo-config-context
                   :value exo-config}
-                 ($ app)))
-  #_(rdom/render
-   ($ r/StrictMode
-      (helix.core/provider
-       {:context exo.hooks/exo-config-context
-        :value exo-config}
-       ($ app)))
-   (js/document.getElementById "app")))
+                 ($ app))))
