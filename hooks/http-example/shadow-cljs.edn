@@ -1,0 +1,7 @@
+{:deps true
+ :dev-http {9234 "public"}
+ :builds {:app {:target :browser
+                :output-dir "public/js"
+                :asset-path "/js"
+                :modules {:main {:entries [exo.http-example.app]
+                                 :init-fn exo.http-example.app/start}}}}}
