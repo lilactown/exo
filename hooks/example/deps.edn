@@ -1,5 +1,5 @@
 {:path ["src"]
  :deps {town.lilac/exo-hooks {:local/root "../"}
-        lilactown/helix {:mvn/version "LATEST"}
+        lilactown/helix {:local/root "../../../helix"}
         thheller/shadow-cljs {:mvn/version "LATEST"}
-        binaryage/devtools {:mvn/version "1.0.4"}}}
+        binaryage/devtools {:mvn/version "LATEST"}}}
