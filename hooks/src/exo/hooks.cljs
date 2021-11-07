@@ -35,11 +35,13 @@
            (let [[result unsub] (exo.data/subscribe!
                                  (:data-cache config) query
                                  (fn [result]
-                                   (set! (.-current results-store) result)
+                                   (when (not= (.-current results-store) result)
+                                     (set! (.-current results-store) result))
                                    (cb)))]
              ;; we may have subscribed before initiating getting data,
              ;; so if we have results put them in the store now
-             (set! (.-current results-store) result)
+             (when (not= (.-current results-store) result)
+               (set! (.-current results-store) result))
              unsub))
          #js [query-hash config])
 
