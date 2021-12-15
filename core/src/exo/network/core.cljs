@@ -74,6 +74,47 @@
     *req))
 
 
+(defn poll-request
+  [req-fn initial-interval]
+  (let [request (req-fn)
+        *req (atom (->RequestState loading request))
+        *polling? (atom true)
+        *interval (atom initial-interval)
+        poll (fn poll []
+               (cond
+                 @*polling?
+                 (-> (req-fn)
+                     (-then
+                      (fn [value]
+                        (when (loading? @*req)
+                          ;; elide :status resolved here until we're done
+                          ;; polling
+                          (swap! *req assoc
+                                 :value value))))
+                     (-catch
+                      (fn [error]
+                        (when (loading? @*req)
+                          (swap! *req assoc
+                                 :status rejected
+                                 :value error))))
+                     (-then poll))
+                 ;; done polling
+
+                 ;; success
+                 (loading? @*req)
+                 (swap! *req assoc
+                        :status resolved)
+
+                 ;; if a failure occurs, we've already tracked that state. do
+                 ;; nothing
+                 ))]
+    {:start (fn []
+              (reset! *polling? true)
+              (poll))
+     :stop #(reset! *polling? false)
+     :update-interval #(reset! *interval %)}))
+
+
 (comment
   (request->ref
    (reify IPromiseLike
