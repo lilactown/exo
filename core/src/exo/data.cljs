@@ -19,6 +19,22 @@ any of `entities`, of changes.")
 the last watcher."))
 
 
+(defn janitor []
+  (let [*pending (atom {}) ; entity->task so that tasks are unique by entity
+        sweep! (fn sweep! [^js deadline]
+                 (doseq [[_e task] @*pending
+                         ;; requestIdleCallback logic
+                         :while (or (> (.timeRemaining deadline) 0)
+                                    (.-didTimeout deadline))
+                         :when (>= (js/performance.now) (:deadline task))
+                         :let [clean (:clean task)]]
+                   (clean))
+                 (js/requestIdleCallback sweep!))]
+    ;; no timeout passed in because i really don't care rn when this gets run
+    (js/requestIdleCallback sweep!)
+    *pending))
+
+
 (defn update!
   ([tcoll key f x]
    (assoc! tcoll key (f (get tcoll key) x)))
@@ -31,7 +47,7 @@ the last watcher."))
 
 
 ;; TODO delete data / cache eviction
-(deftype DataCache [state query-watches entity->queries]
+(deftype DataCache [state query-watches entity->queries *janitor-queue]
   Object
   (equiv [this other]
     (-equiv this other))
@@ -51,6 +67,8 @@ the last watcher."))
       (doseq [entity entities]
         (update! entity->queries' entity conj-set query))
       (set! (.-entity->queries this) (persistent! entity->queries'))
+      ;; remove entities from janitor
+      (apply swap! *janitor-queue dissoc entities)
       ;; TODO should we notify query listeners of changes to `entities`?
       ;; add query => entities, f
       (set! (.-query-watches this)
@@ -91,7 +109,7 @@ the last watcher."))
           (set! (.-entity->queries this) (persistent! entity->queries'))
           (set!
            (.-query-watches this)
-           (assoc-in query-watches [query :entities] new-entities)))) ))
+           (assoc-in query-watches [query :entities] new-entities))))))
 
   (-notify-entity-watches! [_ query entities]
     (let [all-fs (into
@@ -109,8 +127,8 @@ the last watcher."))
 
 
 (defn data-cache
-  ([] (data-cache (p/db [])))
-  ([db] (->DataCache db {} {})))
+  ([] (data-cache (p/db []) (janitor)))
+  ([db janitor] (->DataCache db {} {} janitor)))
 
 
 (defn add-data!

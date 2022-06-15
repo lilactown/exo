@@ -14,7 +14,7 @@
 
 (t/deftest query-subscribe
   (t/testing "query without entities updates when data is added"
-    (let [dc (l.d/data-cache)
+    (let [dc (l.d/data-cache {} (atom {}))
           query [{:foo [:bar]}]
           test-data {:foo {:bar "baz"}}
           [calls f] (spy)
@@ -31,7 +31,7 @@
         (t/is (= test-data (:data @calls))))))
 
   (t/testing "2 queries sharing entities both update when data is added for one"
-    (let [dc (l.d/data-cache)
+    (let [dc (l.d/data-cache {} (atom {}))
           query1 [{:foo [:bar/id :baz]}]
           query2 [{:asdf [:bar/id :baz :jkl]}]
           test-data1 {:foo {:bar/id 0 :baz 42}}
