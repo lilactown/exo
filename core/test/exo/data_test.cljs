@@ -96,7 +96,23 @@
 
         (t/is (empty? (.-query-watches dc)) "cleans up query-watches")
         (t/is (empty? (get (.-entity->queries dc) [:bar/id 0]))
-              "cleans up entity->queries relations")))))
+              "cleans up entity->queries relations"))))
+  (t/testing "2 queries that share the same top-level index"
+    (let [dc (l.d/data-cache {} (atom {}))
+          query1 [{:foo [:id :bar]}]
+          query2 [{:foo [:id :bar :asdf]}]
+          test-dataA {:foo [{:id 1 :bar "baz" :asdf "jkl"}
+                            {:id 2 :bar "qux" :asdf "qwerty"}]}
+          test-dataB {:foo [{:id 1 :bar "baz" :asdf "jkl"}
+                            {:id 2 :bar "qux" :asdf "qwerty"}
+                            {:id 3 :bar "arst" :asdf "mneio"}]}
+          [calls1 f1] (spy)
+          [calls2 f2] (spy)
+          [data1 unsub1] (l.d/subscribe! dc query1 f1)
+          [data2 unsub2] (l.d/subscribe! dc query2 f2)]
+      (l.d/add-data! dc query2 test-dataA)
+      (unsub1) (unsub2)
+      (:data @calls1))))
 
 
 (t/deftest cache-eviction)
