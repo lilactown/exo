@@ -1,9 +1,10 @@
 {:paths ["src"]
- :deps {town.lilac/pyramid {:mvn/version "3.1.4"}
+ :deps {town.lilac/pyramid {:mvn/version "3.2.0"}
         lambdaisland/fetch {:mvn/version "1.0.41"}}
  :aliases
  {:dev {:extra-paths ["test"]
-        :extra-deps {org.clojure/clojurescript {:mvn/version "LATEST"}}}
+        :extra-deps {org.clojure/clojurescript {:mvn/version "LATEST"}
+                     town.lilac/pyramid {:local/root "../../pyramid"}}}
   :test {:extra-paths ["test"]
          :extra-deps
          {lambdaisland/kaocha {:mvn/version "1.0.732"}
