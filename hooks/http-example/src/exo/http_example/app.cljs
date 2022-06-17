@@ -33,23 +33,19 @@
   (edn-query-language.core/query->ast
    pokemon-query)
 
-
   (exo.core/preload!
    exo-config
    pokemon-query)
 
-
   (js/console.log @(:data-cache exo-config))
 
+  (exo.data/pull
+   (:data-cache exo-config)
+   (pokemon-query 1))
 
   (exo.data/pull
    (:data-cache exo-config)
-   pokemon-query)
-
-  (exo.data/pull
-   (:data-cache exo-config)
-   '[(:http/req {:uri "https://pokeapi.co/api/v2/pokemon/1/" :content-type :json})])
-  )
+   '[(:http/req {:uri "https://pokeapi.co/api/v2/pokemon/1/" :content-type :json})]))
 
 
 (defnc app
