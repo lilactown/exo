@@ -36,13 +36,14 @@ the last watcher."))
 (defn janitor []
   (let [*pending (atom {}) ; entity->task so that tasks are unique by entity
         sweep! (fn sweep! [^js deadline]
-                 (doseq [[_e task] @*pending
+                 (doseq [[e task] @*pending
                          ;; requestIdleCallback logic
                          :while (or (> (.timeRemaining deadline) 0)
                                     (.-didTimeout deadline))
                          :when (>= (js/performance.now) (:deadline task))
                          :let [clean (:clean task)]]
-                   (clean))
+                   (clean)
+                   (swap! *pending dissoc e))
                  (request-idle-callback sweep!))]
     ;; no timeout passed in because i really don't care rn when this gets run
     (request-idle-callback sweep!)
@@ -119,6 +120,7 @@ the last watcher."))
                                           (js/performance.now))
                              :clean
                              (fn []
+                               (prn :cleaning entity)
                                (set! (.-cache this)
                                      (p/delete cache entity)))})))
           (doseq [index indices]
@@ -169,7 +171,7 @@ the last watcher."))
 
 
 (defn data-cache
-  ([] (data-cache (p/db []) (janitor) {:janitor/time-to-keep 1000 #_ms}))
+  ([] (data-cache (p/db []) (janitor) {:janitor/time-to-keep 6000 #_ms}))
   ([db janitor opts] (->DataCache db {} {} {} janitor opts)))
 
 
