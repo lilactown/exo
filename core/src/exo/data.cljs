@@ -47,7 +47,7 @@ the last watcher."))
 
 
 ;; TODO janitor indices
-(deftype DataCache [state query-watches entity->queries index->queries *janitor-queue]
+(deftype DataCache [cache query-watches entity->queries index->queries *janitor-queue]
   Object
   (equiv [this other]
     (-equiv this other))
@@ -57,11 +57,11 @@ the last watcher."))
     (identical? o other))
 
   IDeref
-  (-deref [_] state)
+  (-deref [_] cache)
 
   IDataCache
   (-add-query-watch [this query f]
-    (let [{:keys [data entities indices]} (p/pull-report state query)
+    (let [{:keys [data entities indices]} (p/pull-report cache query)
           entity->queries' (transient entity->queries)
           index->queries' (transient index->queries)]
       ;; add entity => query
@@ -138,7 +138,7 @@ the last watcher."))
       ;; only pull each query once (in the case where multiple `f`s are watching
       ;; the same query)
       (doseq [f all-fs]
-        (f state)))))
+        (f cache)))))
 
 
 (defn data-cache
@@ -150,9 +150,9 @@ the last watcher."))
   "Adds new data to the normalized cache, and notifies anyone listening to the
   entities the data pertains of changes."
   [^IDataCache dc query data]
-  (let [old-state (.-state dc)
+  (let [old-state (.-cache dc)
         {:keys [db entities indices]} (p/add-report old-state data)]
-    (set! (.-state dc) db)
+    (set! (.-cache dc) db)
     (when-not (nil? (get-in (.-query-watches dc) [query :fs]))
       (-update-query-entities dc query entities)
       (-notify-watches! dc query entities indices))
@@ -165,11 +165,11 @@ the last watcher."))
 
 
 (defn subscribe!
-  "Returns a tuple `[data unsubscribe]`"
+  "Returns a tuple `[initial-data unsubscribe]`"
   [dc query f]
   (let [prev-data (atom nil)
-        f' (fn [state]
-             (let [{:keys [data entities]} (p/pull-report state query)]
+        f' (fn [cache]
+             (let [{:keys [data entities]} (p/pull-report cache query)]
                (when (not= @prev-data data)
                  (reset! prev-data data)
                  (-update-query-entities dc query entities)
