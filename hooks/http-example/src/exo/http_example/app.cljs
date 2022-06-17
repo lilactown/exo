@@ -5,13 +5,13 @@
    [exo.hooks :as exo.hooks]
    [exo.network.http :as exo.http]
    [exo.http-example.api :as example.api]
-   [helix.core :refer [defnc $ <>]]
+   [helix.core :refer [defnc $]]
    [helix.dom :as d]
    [helix.hooks :as hooks]
    [lambdaisland.fetch.edn]))
 
 
-(def exo-config
+(defonce exo-config
   (exo/create-config
    {:network [(exo.http/link
                {:default-body-handler
@@ -31,21 +31,17 @@
 
 (comment
   (edn-query-language.core/query->ast
-   pokemon-query)
+   (pokemon-query 1))
 
   (exo.core/preload!
    exo-config
-   pokemon-query)
-
-  (js/console.log @(:data-cache exo-config))
-
-  (exo.data/pull
-   (:data-cache exo-config)
    (pokemon-query 1))
 
+  (js/console.log (:data-cache exo-config))
+
   (exo.data/pull
    (:data-cache exo-config)
-   '[(:http/req {:uri "https://pokeapi.co/api/v2/pokemon/1/" :content-type :json})]))
+   (pokemon-query 1)))
 
 
 (defnc app
