@@ -46,8 +46,8 @@ the last watcher."))
   (fnil conj #{}))
 
 
-;; TODO delete data / cache eviction
-(deftype DataCache [state query-watches entity->queries *janitor-queue]
+;; TODO janitor indices
+(deftype DataCache [state query-watches entity->queries index->queries *janitor-queue]
   Object
   (equiv [this other]
     (-equiv this other))
@@ -61,12 +61,16 @@ the last watcher."))
 
   IDataCache
   (-add-query-watch [this query f]
-    (let [{:keys [data entities]} (p/pull-report state query)
-          entity->queries' (transient entity->queries)]
+    (let [{:keys [data entities indices]} (p/pull-report state query)
+          entity->queries' (transient entity->queries)
+          index->queries' (transient index->queries)]
       ;; add entity => query
       (doseq [entity entities]
         (update! entity->queries' entity conj-set query))
       (set! (.-entity->queries this) (persistent! entity->queries'))
+      (doseq [index indices]
+        (update! index->queries' index conj-set query))
+      (set! (.-index->queries this) (persistent! index->queries'))
       ;; remove entities from janitor
       (apply swap! *janitor-queue dissoc entities)
       ;; TODO should we notify query listeners of changes to `entities`?
@@ -74,21 +78,26 @@ the last watcher."))
       (set! (.-query-watches this)
             (-> query-watches
                 (assoc-in [query :entities] entities)
-                (update-in [query :fs] conj-set f)))
+                (update-in [query :fs] conj-set f)
+                (assoc-in [query :indices] indices)))
       data))
 
   (-remove-query-watch [this query f]
-    (let [{:keys [entities fs]} (get query-watches query)
+    (let [{:keys [entities fs indices]} (get query-watches query)
           fs' (disj fs f)]
       (if (seq fs')
         (set! (.-query-watches this) (assoc-in query-watches [query :fs] fs'))
         ;; if we have no more fs watching query, remove query from entities
         ;; and then clear out query from query-watches completely to avoid
         ;; memory leak
-        (let [entity->queries' (transient entity->queries)]
+        (let [entity->queries' (transient entity->queries)
+              index->queries' (transient index->queries)]
           (doseq [entity entities]
             (update! entity->queries' entity disj query))
+          (doseq [index indices]
+            (update! index->queries' index disj query))
           (set! (.-entity->queries this) (persistent! entity->queries'))
+          (set! (.-index->queries this) (persistent! index->queries'))
           (set! (.-query-watches this) (dissoc query-watches query))))))
 
   (-update-query-entities [this query new-entities]
@@ -128,7 +137,7 @@ the last watcher."))
 
 (defn data-cache
   ([] (data-cache (p/db []) (janitor)))
-  ([db janitor] (->DataCache db {} {} janitor)))
+  ([db janitor] (->DataCache db {} {} {} janitor)))
 
 
 (defn add-data!
