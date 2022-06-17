@@ -112,7 +112,8 @@
           [data2 unsub2] (l.d/subscribe! dc query2 f2)]
       (l.d/add-data! dc query2 test-dataA)
       (unsub1) (unsub2)
-      (:data @calls1))))
+      (t/is (= (:count @calls1) (:count @calls2)))
+      (:data @calls2))))
 
 
 (t/deftest cache-eviction)
