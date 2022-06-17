@@ -23,7 +23,10 @@
 
 (defn pokemon-query
   [id]
-  `[{(:http/req {:uri ~(str "https://pokeapi.co/api/v2/pokemon/" id "/") :content-type :json}) [:pokemon/id :pokemon/name :pokemon/weight]}])
+  `[{(:http/req
+      {:uri ~(str "https://pokeapi.co/api/v2/pokemon/" id "/")
+       :content-type :json})
+     [:pokemon/id :pokemon/name :pokemon/weight]}])
 
 
 (comment
