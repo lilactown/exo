@@ -27,7 +27,7 @@ the last watcher."))
               :didTimeout false}))
    1))
 
-(def request-idle-callback
+(def ^:private request-idle-callback
   (if (exists? js/requestIdleCallback)
     js/requestIdleCallback
     node-idle-callback))

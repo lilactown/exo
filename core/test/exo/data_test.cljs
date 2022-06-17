@@ -195,8 +195,7 @@
          test-data {:foo [{:id 1 :bar "baz" :asdf "jkl"}
                           {:id 2 :bar "qux" :asdf "qwerty"}]}
          [_calls f] (spy)
-         [_data unsub] (l.d/subscribe! dc query f)
-         min-wait (+ time-to-keep (js/performance.now))]
+         [_data unsub] (l.d/subscribe! dc query f)]
      (l.d/add-data! dc query test-data)
      (unsub)
      ;; re-subscribe some time in the future before the time-to-keep is over
