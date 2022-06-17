@@ -11,9 +11,9 @@ Returns the result of running `query`")
   (-update-query-entities [o query entities]
     "Updates the set of entities that `queries` contains, to handle notifying
 watchers of `query` when `entities` change.")
-  (-notify-entity-watches! [o query entities]
+  (-notify-watches! [o query entities indices]
     "Notifies any watches of `query`, and any watches of queries that contain
-any of `entities`, of changes.")
+any of `entities` or `indices`, of changes.")
   (-remove-query-watch [o query f]
     "Removes `f` from watches on `query`. Cleans up `query` completely if it's
 the last watcher."))
@@ -120,13 +120,19 @@ the last watcher."))
            (.-query-watches this)
            (assoc-in query-watches [query :entities] new-entities))))))
 
-  (-notify-entity-watches! [_ query entities]
-    (let [all-fs (into
-                  (get-in query-watches [query :fs])
+  (-notify-watches! [_ query entities indices]
+    (let [entity-fs (into
+                     (get-in query-watches [query :fs])
+                     (comp
+                      (mapcat #(get entity->queries %))
+                      (mapcat #(get-in query-watches [% :fs])))
+                     entities)
+          all-fs (into
+                  entity-fs
                   (comp
-                   (mapcat #(get entity->queries %))
+                   (mapcat #(get index->queries %))
                    (mapcat #(get-in query-watches [% :fs])))
-                  entities)]
+                  indices)]
       ;; TODO we rely on `f` to pull the data here. we could speed this up
       ;; by pulling here instead and calling each `f` for each query, so we
       ;; only pull each query once (in the case where multiple `f`s are watching
@@ -145,11 +151,11 @@ the last watcher."))
   entities the data pertains of changes."
   [^IDataCache dc query data]
   (let [old-state (.-state dc)
-        {:keys [db entities]} (p/add-report old-state data)]
+        {:keys [db entities indices]} (p/add-report old-state data)]
     (set! (.-state dc) db)
     (when-not (nil? (get-in (.-query-watches dc) [query :fs]))
       (-update-query-entities dc query entities)
-      (-notify-entity-watches! dc query entities))
+      (-notify-watches! dc query entities indices))
     db))
 
 
