@@ -29,21 +29,6 @@
      [:pokemon/id :pokemon/name :pokemon/weight]}])
 
 
-(comment
-  (edn-query-language.core/query->ast
-   (pokemon-query 1))
-
-  (exo.core/preload!
-   exo-config
-   (pokemon-query 1))
-
-  (js/console.log (:data-cache exo-config))
-
-  (exo.data/pull
-   (:data-cache exo-config)
-   (pokemon-query 1)))
-
-
 (defnc app
   []
   (let [[pokemon set-pokemon] (hooks/use-state 1)
@@ -65,11 +50,4 @@
   (.render root (helix.core/provider
                  {:context exo.hooks/exo-config-context
                   :value exo-config}
-                 ($ app)))
-  #_(rdom/render
-   ($ r/StrictMode
-      (helix.core/provider
-       {:context exo.hooks/exo-config-context
-        :value exo-config}
-       ($ app)))
-   (js/document.getElementById "app")))
+                 ($ app))))
