@@ -19,37 +19,6 @@ any of `entities` or `indices`, of changes.")
 the last watcher."))
 
 
-(defn- node-idle-callback
-  [cb]
-  (js/setTimeout
-   (fn []
-     (cb #js {:timeRemaining (constantly 100)
-              :didTimeout false}))
-   1))
-
-(def ^:private request-idle-callback
-  (if (exists? js/requestIdleCallback)
-    js/requestIdleCallback
-    node-idle-callback))
-
-
-(defn janitor []
-  (let [*pending (atom {}) ; entity->task so that tasks are unique by entity
-        sweep! (fn sweep! [^js deadline]
-                 (doseq [[e task] @*pending
-                         ;; requestIdleCallback logic
-                         :while (or (> (.timeRemaining deadline) 0)
-                                    (.-didTimeout deadline))
-                         :when (>= (js/performance.now) (:deadline task))
-                         :let [clean (:clean task)]]
-                   (clean)
-                   (swap! *pending dissoc e))
-                 (request-idle-callback sweep!))]
-    ;; no timeout passed in because i really don't care rn when this gets run
-    (request-idle-callback sweep!)
-    *pending))
-
-
 (defn update!
   ([tcoll key f x]
    (assoc! tcoll key (f (get tcoll key) x)))
@@ -61,12 +30,10 @@ the last watcher."))
   (fnil conj #{}))
 
 
-;; TODO janitor indices
 (deftype DataCache [cache
                     query-watches
                     entity->queries
                     index->queries
-                    *janitor-queue
                     opts]
   Object
   (equiv [this other]
@@ -91,8 +58,6 @@ the last watcher."))
       (doseq [index indices]
         (update! index->queries' index conj-set query))
       (set! (.-index->queries this) (persistent! index->queries'))
-      ;; remove entities from janitor
-      (apply swap! *janitor-queue dissoc entities)
       ;; TODO should we notify query listeners of changes to `entities`?
       ;; add query => entities, f
       (set! (.-query-watches this)
@@ -113,16 +78,7 @@ the last watcher."))
         (let [entity->queries' (transient entity->queries)
               index->queries' (transient index->queries)]
           (doseq [entity entities]
-            (update! entity->queries' entity disj query)
-            (when (empty? (get entity->queries' entity))
-              (swap! *janitor-queue assoc
-                     entity {:deadline (+ (:janitor/time-to-keep opts)
-                                          (js/performance.now))
-                             :clean
-                             (fn []
-                               (prn :cleaning entity)
-                               (set! (.-cache this)
-                                     (p/delete cache entity)))})))
+            (update! entity->queries' entity disj query))
           (doseq [index indices]
             (update! index->queries' index disj query))
           (set! (.-entity->queries this) (persistent! entity->queries'))
@@ -171,8 +127,8 @@ the last watcher."))
 
 
 (defn data-cache
-  ([] (data-cache (p/db []) (janitor) {:janitor/time-to-keep 6000 #_ms}))
-  ([db janitor opts] (->DataCache db {} {} {} janitor opts)))
+  ([] (data-cache (p/db []) {}))
+  ([db opts] (->DataCache db {} {} {} opts)))
 
 
 (defn add-data!
@@ -203,5 +159,6 @@ the last watcher."))
                  (reset! prev-data data)
                  (-update-query-entities dc query entities)
                  (f data))))
-        unsub #(-remove-query-watch dc query f')]
+        unsub #(do (prn :unsub)
+                   (-remove-query-watch dc query f'))]
     [(-add-query-watch dc query f') unsub]))
