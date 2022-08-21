@@ -1,3 +1,3 @@
 # exo
 
-Extremely alpha. Do not use
+Experimental & changing. Do not use
