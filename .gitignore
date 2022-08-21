@@ -2,3 +2,6 @@ node_modules/
 .cpcache/
 .shadow-cljs/
 .cache/
+.clj-kondo/.cache
+out/
+.log/
