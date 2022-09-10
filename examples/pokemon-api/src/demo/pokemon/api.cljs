@@ -189,6 +189,11 @@
                  list-pokemon]))
 
 
+(defn fetch-query
+  [query]
+  (p.eql/process env query))
+
+
 (comment
   (-> (p.eql/process env '[{[:pokemon/id "35"] [:pokemon/name :pokemon/id]}])
       (.then prn))
