@@ -1,5 +1,6 @@
 (ns exo.pokemon.api
   (:require
+   [clojure.string :as string]
    [com.wsscode.pathom3.connect.indexes :as pci]
    [com.wsscode.pathom3.connect.operation :as pco]
    [com.wsscode.pathom3.interface.async.eql :as p.eql]
@@ -92,9 +93,18 @@
       (.then #(tree/transform-keys (:body %) pokemon-key-map))))
 
 
+(defn- parse-page-from-url
+  [url]
+  (re-seq #"[\?|&](.+)=(.+)[&|$]" url))
+
+(comment
+  (parse-page-from-url "https://pokeapi.co/api/v2/pokemon/?offset=20&limit=20"))
+
 (pco/defresolver list-pokemon
-  []
-  {::pco/output [{:pokemon/list [:pokemon/name]}]}
+  [{:keys [page]}]
+  {::pco/input [(pco/? :page)]
+   ::pco/output [{:pokemon/list [:pokemon/name]}
+                 :page :next]}
   (-> (fetch/request
        "https://pokeapi.co/api/v2/pokemon/"
        :content-type :json
@@ -104,16 +114,103 @@
                {:pokemon/list data}))))
 
 
+(pco/defresolver pokemon-evolution-id
+  [{:keys [pokemon.evolution/url]}]
+  {::pco/output [:pokemon.evolution/id]}
+  {:pokemon.evolution/id (last (string/split url "/"))})
+
+
+(def species-key-map
+  {["id"] :pokemon.species/id
+   ["name"] :pokemon.species/name
+   ["order"] :pokemon.species/order
+   ["gender_rate"] :pokemon.species/gender-rate
+   ["capture_rate"] :pokemon.species/capture-rate
+   ["base_happiness"] :pokemon.species/base-happiness
+   ["is_baby"] :pokemon.species/baby?
+   ["is_legendary"] :pokemon.species/legendary?
+   ["is_mythical"] :pokemon.species/mythical?
+   ["evolves_from_species"] :pokemon.species/evolves-from
+   ["evolves_from_species" "name"] :pokemon.species/name
+   ["evolves_from_species" "url"] :pokemon.species/url
+   ["evolution_chain"] :pokemon.species/evolution-chain
+   ["evolution_chain" "url"] :pokemon.evolution/url})
+
+
+(def species-attrs
+  (->> species-key-map
+       (filter #(= 1 (count (key %))))
+       (map val)
+       (vec)))
+
+
+(pco/defresolver species-by-name
+  [{:keys [pokemon.species/name]}]
+  {::pco/output species-attrs}
+  (-> (fetch/request
+       (str "https://pokeapi.co/api/v2/pokemon-species/" name "/")
+       :content-type :json
+       :accept :json)
+      (.then #(tree/transform-keys (:body %) species-key-map))))
+
+
+(defn transform-evolution-chain-key
+  [path x]
+  (cond
+    (= "evolves_to" (last path)) :pokemon.evolution/evolves-to
+    (= "species" (last path)):pokemon.evolution/species
+    (= ["species" "name"] (take-last 2 path)) :pokemon.species/name
+    (= ["species" "url"] (take-last 2 path)) :pokemon.species/url))
+
+
+(pco/defresolver evolution-by-id
+  [{:keys [pokemon.evolution/id]}]
+  {::pco/output [:pokemon.evolution/id
+                 {:pokemon.evolution/chain [:pokemon.evolution/evolves-to
+                                            :pokemon.evolution/species]}]}
+  (-> (fetch/request
+       (str "https://pokeapi.co/api/v2/evolution-chain/" id "/")
+       :content-type :json
+       :accept :json)
+      (.then (fn [data]
+               {:pokemon.evolution/id (gobj/get (:body data) "id")
+                :pokemon.evolution/chain
+                (tree/transform-keys
+                 (gobj/get (:body data) "chain")
+                 transform-evolution-chain-key)}))))
+
+
 (def env
-  (pci/register [pokemon-by-id pokemon-by-name list-pokemon]))
+  (pci/register [pokemon-by-id
+                 pokemon-by-name
+                 list-pokemon
+                 pokemon-evolution-id
+                 species-by-name
+                 evolution-by-id]))
 
 
 (comment
   (-> (p.eql/process env '[{[:pokemon/id "35"] [:pokemon/name :pokemon/id]}])
       (.then prn))
 
-  (-> (p.eql/process env '[{[:pokemon/name "venusaur"] [:pokemon/name :pokemon/id]}])
+  (-> (p.eql/process
+       env
+       '[{[:pokemon/name "venusaur"]
+          [:pokemon/name :pokemon/id
+           {:pokemon/species
+            [:pokemon.species/name
+             :pokemon.species/mythical?
+             {:pokemon.species/evolution-chain
+              [:pokemon.evolution/id
+               {:pokemon.evolution/chain
+                [{:pokemon.evolution/species
+                  [:pokemon.species/name :pokemon.species/id]}
+                 {:pokemon.evolution/evolves-to
+                  [{:pokemon.evolution/species
+                    [:pokemon.species/name :pokemon.species/id]}
+                   {:pokemon.evolution/evolves-to ...}]}]}]}]}]}])
       (.then prn))
 
+  ;; slowww
   (-> (p.eql/process env '[{:pokemon/list [:pokemon/name :pokemon/id :pokemon/weight]}])
       (.then prn)))
