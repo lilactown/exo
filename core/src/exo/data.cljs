@@ -159,6 +159,5 @@ the last watcher."))
                  (reset! prev-data data)
                  (-update-query-entities dc query entities)
                  (f data))))
-        unsub #(do (prn :unsub)
-                   (-remove-query-watch dc query f'))]
+        unsub #(-remove-query-watch dc query f')]
     [(-add-query-watch dc query f') unsub]))
