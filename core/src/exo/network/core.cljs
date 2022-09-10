@@ -119,15 +119,3 @@
   (request->ref
    (reify IPromiseLike
      (-then [t _] t) (-catch [t _] t))))
-
-
-(defn compose-network-fns
-  [network-fns]
-  (fn [query opts]
-    (loop [fn-stack network-fns]
-      (if-let [f (first fn-stack)]
-        (if-let [p (f query opts)]
-          p
-          (recur (rest fn-stack)))
-        (throw (ex-info "No matching network fn found!"
-                        {:network network-fns}))))))

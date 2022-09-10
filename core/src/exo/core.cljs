@@ -16,7 +16,7 @@
          data-cache (data/data-cache)}}]
   {:request-store request-store
    :data-cache data-cache
-   :network (net/compose-network-fns network)})
+   :network network})
 
 
 (defn load-query!
@@ -37,7 +37,7 @@
                 ;; start a new one
                 *stored-req
                 (-> query
-                    (eql/query->ast)
+                    #_(eql/query->ast)
                     (network opts)
                     (net/-then
                      (fn [data]
