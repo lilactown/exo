@@ -18,6 +18,8 @@
   [id]
   [{[:pokemon/id id] [:pokemon/name
                       :pokemon/id
+                      :pokemon/height
+                      :pokemon/weight
                       {:pokemon/sprites [:pokemon.sprites/front-default]}]}])
 
 (defnc app
