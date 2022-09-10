@@ -10,12 +10,14 @@
 
 (defonce exo-config-context (r/createContext))
 
+
 (defn provider
   [props]
   (r/createElement
    (gobj/get exo-config-context "Provider")
    #js {:value (gobj/get props "config")}
    (gobj/get props "children")))
+
 
 (defn use-query
   ([query] (use-query query nil))
@@ -29,13 +31,13 @@
          ;; we use a ref as that store in lieu of a way to just get a memoized
          ;; result of a query from the exo data-cache
          ;; TODO cache whole result in data-cache so that we don't rely on pull
-         results-store (r/useRef
-                       ;; memoize this on mount because it's expensive
-                        (r/useMemo
-                         #(exo.data/pull
-                           (:data-cache config)
-                           query)
-                         #js []))
+         ^js results-store (r/useRef
+                            ;; memoize this on mount because it's expensive
+                            (r/useMemo
+                             #(exo.data/pull
+                               (:data-cache config)
+                               query)
+                             #js []))
          subscribe-data
          (r/useCallback
           (fn [cb]

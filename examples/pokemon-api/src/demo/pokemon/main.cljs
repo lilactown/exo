@@ -14,6 +14,7 @@
    {:network (fn [query _opts]
                (api/fetch-query query))}))
 
+
 (defn pokemon-query
   [id]
   [{[:pokemon/id id] [:pokemon/name
@@ -21,6 +22,7 @@
                       :pokemon/height
                       :pokemon/weight
                       {:pokemon/sprites [:pokemon.sprites/front-default]}]}])
+
 
 (defn evolution-chain-query
   [id]
@@ -42,6 +44,7 @@
                {:pokemon/sprites [:pokemon.sprites/front-default]}]}
              {:pokemon.evolution/evolves-to '...}]}]}]}]}]}])
 
+
 (defnc evolution
   [{:keys [species evolves-to]}]
   (d/div
@@ -56,6 +59,7 @@
                    :species (:pokemon.evolution/species evolves)
                    :evolves-to (:pokemon.evolution/evolves-to evolves)}))))
 
+
 (defnc evolutions
   [{:keys [id]}]
   (let [{:keys [data loading?]} (exo.hooks/use-query (evolution-chain-query id))
@@ -69,6 +73,7 @@
       (d/div "Loading...")
       ($ evolution {:species (:pokemon.evolution/species evolution-chain)
                     :evolves-to (:pokemon.evolution/evolves-to evolution-chain)}))))
+
 
 (defnc app
   []
@@ -94,6 +99,7 @@
        "Toggle evolution chain")
       (when show-evolution-chain?
         ($ evolutions {:id id}))))))
+
 
 (defonce root (rdom/createRoot (js/document.getElementById "app")))
 
