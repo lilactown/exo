@@ -4,11 +4,18 @@
    ["use-sync-external-store/shim" :refer [useSyncExternalStore]]
    [exo.core :as exo]
    [exo.data]
-   [exo.network.core :as net]))
+   [exo.network.core :as net]
+   [goog.object :as gobj]))
 
 
 (defonce exo-config-context (r/createContext))
 
+(defn provider
+  [props]
+  (r/createElement
+   (gobj/get exo-config-context "Provider")
+   #js {:value (gobj/get props "config")}
+   (gobj/get props "children")))
 
 (defn use-query
   ([query] (use-query query nil))
