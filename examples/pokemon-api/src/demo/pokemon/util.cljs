@@ -1,4 +1,4 @@
-(ns exo.pokemon.util
+(ns demo.pokemon.util
   (:require
    [goog.object :as gobj]))
 

@@ -3,5 +3,5 @@
  :builds {:app {:target :browser
                 :output-dir "public/js"
                 :asset-path "/js"
-                :modules {:main {:entries [exo.pokemon.app]
-                                 :init-fn exo.pokemon.app/start}}}}}
+                :modules {:main {:entries [demo.pokemon.main]
+                                 :init-fn demo.pokemon.main/start}}}}}

@@ -1,10 +1,10 @@
-(ns exo.pokemon.api
+(ns demo.pokemon.api
   (:require
    [clojure.string :as string]
    [com.wsscode.pathom3.connect.indexes :as pci]
    [com.wsscode.pathom3.connect.operation :as pco]
    [com.wsscode.pathom3.interface.async.eql :as p.eql]
-   [exo.pokemon.util :as util]
+   [demo.pokemon.util :as util]
    [goog.object :as gobj]
    [lambdaisland.fetch :as fetch]))
 
