@@ -68,7 +68,7 @@
                  #(exo/current-status config query))
 
          load (r/useCallback
-               #(exo/preload! config query)
+               #(do (exo/preload! config query) js/undefined)
                #js [query-hash config])]
      (r/useEffect
       #(when enabled?

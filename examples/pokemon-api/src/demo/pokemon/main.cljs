@@ -104,5 +104,4 @@
 
 (defn start
   []
-  (exo/preload! exo-config (pokemon-query 1))
-  (reload))
+  (.then (exo/preload! exo-config (pokemon-query 1)) #(reload)))

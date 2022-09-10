@@ -55,8 +55,7 @@
   ([config query]
    (preload! config query {}))
   ([config query opts]
-   (load-query! config query opts)
-   js/undefined))
+   (:value @(load-query! config query opts))))
 
 
 (defn current-status
