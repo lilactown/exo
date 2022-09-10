@@ -109,9 +109,9 @@
 
 
 (def species-key-map
-  {["id"] :pokemon.species/id
-   ["name"] :pokemon.species/name
-   ["order"] :pokemon.species/order
+  {["id"] :pokemon/id
+   ["name"] :pokemon/name
+   ["order"] :pokemon/order
    ["gender_rate"] :pokemon.species/gender-rate
    ["capture_rate"] :pokemon.species/capture-rate
    ["base_happiness"] :pokemon.species/base-happiness
@@ -119,7 +119,7 @@
    ["is_legendary"] :pokemon.species/legendary?
    ["is_mythical"] :pokemon.species/mythical?
    ["evolves_from_species"] :pokemon.species/evolves-from
-   ["evolves_from_species" "name"] :pokemon.species/name
+   ["evolves_from_species" "name"] :pokemon/name
    ["evolves_from_species" "url"] :pokemon.species/url
    ["evolution_chain"] :pokemon.species/evolution-chain
    ["evolution_chain" "url"] :pokemon.evolution/url})
@@ -147,7 +147,7 @@
   (cond
     (= "evolves_to" (last path)) :pokemon.evolution/evolves-to
     (= "species" (last path)):pokemon.evolution/species
-    (= ["species" "name"] (take-last 2 path)) :pokemon.species/name
+    (= ["species" "name"] (take-last 2 path)) :pokemon/name
     (= ["species" "url"] (take-last 2 path)) :pokemon.species/url))
 
 
