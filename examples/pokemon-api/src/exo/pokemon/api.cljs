@@ -4,9 +4,9 @@
    [com.wsscode.pathom3.connect.indexes :as pci]
    [com.wsscode.pathom3.connect.operation :as pco]
    [com.wsscode.pathom3.interface.async.eql :as p.eql]
+   [exo.pokemon.util :as util]
    [goog.object :as gobj]
-   [lambdaisland.fetch :as fetch]
-   [town.lilac.tree :as tree]))
+   [lambdaisland.fetch :as fetch]))
 
 
 (def pokemon-key-map
@@ -80,7 +80,7 @@
        (str "https://pokeapi.co/api/v2/pokemon/" id "/")
        :content-type :json
        :accept :json)
-      (.then #(tree/transform-keys (:body %) pokemon-key-map))))
+      (.then #(util/transform-keys (:body %) pokemon-key-map))))
 
 
 (pco/defresolver pokemon-by-name
@@ -90,28 +90,7 @@
        (str "https://pokeapi.co/api/v2/pokemon/" name "/")
        :content-type :json
        :accept :json)
-      (.then #(tree/transform-keys (:body %) pokemon-key-map))))
-
-
-(defn- parse-page-from-url
-  [url]
-  (re-seq #"[\?|&](.+)=(.+)[&|$]" url))
-
-(comment
-  (parse-page-from-url "https://pokeapi.co/api/v2/pokemon/?offset=20&limit=20"))
-
-(pco/defresolver list-pokemon
-  [{:keys [page]}]
-  {::pco/input [(pco/? :page)]
-   ::pco/output [{:pokemon/list [:pokemon/name]}
-                 :page :next]}
-  (-> (fetch/request
-       "https://pokeapi.co/api/v2/pokemon/"
-       :content-type :json
-       :accept :json)
-      (.then #(tree/transform-keys (gobj/get (:body %) "results") pokemon-key-map))
-      (.then (fn [data]
-               {:pokemon/list data}))))
+      (.then #(util/transform-keys (:body %) pokemon-key-map))))
 
 
 (pco/defresolver pokemon-evolution-id
@@ -151,7 +130,7 @@
        (str "https://pokeapi.co/api/v2/pokemon-species/" name "/")
        :content-type :json
        :accept :json)
-      (.then #(tree/transform-keys (:body %) species-key-map))))
+      (.then #(util/transform-keys (:body %) species-key-map))))
 
 
 (defn transform-evolution-chain-key
@@ -175,18 +154,39 @@
       (.then (fn [data]
                {:pokemon.evolution/id (gobj/get (:body data) "id")
                 :pokemon.evolution/chain
-                (tree/transform-keys
+                (util/transform-keys
                  (gobj/get (:body data) "chain")
                  transform-evolution-chain-key)}))))
+
+
+(defn- parse-page-from-url
+  [url]
+  (re-seq #"[\?|&](.+)=(.+)[&|$]" url))
+
+(comment
+  (parse-page-from-url "https://pokeapi.co/api/v2/pokemon/?offset=20&limit=20"))
+
+(pco/defresolver list-pokemon
+  [{:keys [page]}]
+  {::pco/input [(pco/? :page)]
+   ::pco/output [{:pokemon/list [:pokemon/name]}
+                 :page :next]}
+  (-> (fetch/request
+       "https://pokeapi.co/api/v2/pokemon/"
+       :content-type :json
+       :accept :json)
+      (.then #(util/transform-keys (gobj/get (:body %) "results") pokemon-key-map))
+      (.then (fn [data]
+               {:pokemon/list data}))))
 
 
 (def env
   (pci/register [pokemon-by-id
                  pokemon-by-name
-                 list-pokemon
                  pokemon-evolution-id
                  species-by-name
-                 evolution-by-id]))
+                 evolution-by-id
+                 list-pokemon]))
 
 
 (comment
@@ -212,5 +212,7 @@
       (.then prn))
 
   ;; slowww
-  (-> (p.eql/process env '[{:pokemon/list [:pokemon/name :pokemon/id :pokemon/weight]}])
+  (-> (p.eql/process
+       env
+       '[{:pokemon/list [:pokemon/name :pokemon/id :pokemon/weight]}])
       (.then prn)))
