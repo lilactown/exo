@@ -24,6 +24,15 @@
    ["moves" "move" "url"] :pokemon.move/url
    ;; eliding version_group_details
    ["id"] :pokemon/id
+   ["sprites"] :pokemon/sprites
+   ["sprites" "back_default"] :pokemon.sprites/back-default
+   ["sprites" "back_female"] :pokemon.sprites/back-female
+   ["sprites" "back_shiny"] :pokemon.sprites/back-shiny
+   ["sprites" "back_shiny_female"] :pokemon.sprites/back-shiny-female
+   ["sprites" "front_default"] :pokemon.sprites/front-default
+   ["sprites" "front_female"] :pokemon.sprites/front-female
+   ["sprites" "front_shiny"] :pokemon.sprites/front-shiny
+   ["sprites" "front_shiny_female"] :pokemon.sprites/front-shiny-female
    ["types"] :pokemon/types
    ["types" "slot"] :pokemon.type/slot
    ["types" "type"] :pokmeon.type/info

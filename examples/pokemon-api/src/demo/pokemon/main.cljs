@@ -15,7 +15,9 @@
 
 (defn pokemon-query
   [id]
-  [{[:pokemon/id id] [:pokemon/name :pokemon/id]}])
+  [{[:pokemon/id id] [:pokemon/name
+                      :pokemon/id
+                      {:pokemon/sprites [:pokemon.sprites/front-default]}]}])
 
 (comment
   (.then (api/fetch-query (pokemon-query 1)) prn))
@@ -23,13 +25,17 @@
 (defnc app
   []
   (let [[id set-id] (hooks/use-state 1)
-        query-state (exo.hooks/use-query (pokemon-query id))]
+        {:keys [data loading?]} (exo.hooks/use-query (pokemon-query id))]
     (d/div
-     (d/button {:on-click #(set-id dec)
-                :disabled (= 1 id)} "Prev")
+     (d/button
+      {:on-click #(set-id dec)
+       :disabled (= 1 id)}
+      "Prev")
      (d/button {:on-click #(set-id inc)} "Next")
      (d/div
-      (pr-str query-state)))))
+      (d/img {:src (get-in data [[:pokemon/id id] :pokemon/sprites :pokemon.sprites/front-default])}))
+     (d/div
+      (pr-str data)))))
 
 (defonce root (rdom/createRoot (js/document.getElementById "app")))
 
