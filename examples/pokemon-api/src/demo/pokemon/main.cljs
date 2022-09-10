@@ -1,5 +1,6 @@
 (ns demo.pokemon.main
   (:require
+   [cljs.pprint :refer [pprint]]
    [demo.pokemon.api :as api]
    [exo.core :as exo]
    [exo.hooks]
@@ -19,9 +20,6 @@
                       :pokemon/id
                       {:pokemon/sprites [:pokemon.sprites/front-default]}]}])
 
-(comment
-  (.then (api/fetch-query (pokemon-query 1)) prn))
-
 (defnc app
   []
   (let [[id set-id] (hooks/use-state 1)
@@ -35,7 +33,10 @@
      (d/div
       (d/img {:src (get-in data [[:pokemon/id id] :pokemon/sprites :pokemon.sprites/front-default])}))
      (d/div
-      (pr-str data)))))
+      (d/code
+       (d/pre
+        (with-out-str
+          (pprint data))))))))
 
 (defonce root (rdom/createRoot (js/document.getElementById "app")))
 
