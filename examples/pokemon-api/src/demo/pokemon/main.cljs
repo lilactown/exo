@@ -59,20 +59,27 @@
                    :evolves-to (:pokemon.evolution/evolves-to evolves)}))))
 
 
+(defn- get-chain
+  [query-result]
+  (-> (first query-result) ; we don't depend on the id, so we can
+      (val) ; render previous query results during fetch
+      (get-in [:pokemon.species/evolution-chain
+               :pokemon.evolution/chain])))
+
+
 (defnc evolutions
   [{:keys [id]}]
   (let [{:keys [data loading?]} (exo.hooks/use-deferred-query
-                                 (evolution-chain-query id))
-        evolution-chain (-> (first data) ; we don't depend on the id, so we can
-                            (val) ; render previous query results during fetch
-                            (get-in [:pokemon.species/evolution-chain
-                                     :pokemon.evolution/chain]))]
-    (if (empty? evolution-chain)
-      (d/div "Loading...")
-      (d/div
-       {:style {:opacity (if loading? 0.6 1)}}
-       ($ evolution {:species (:pokemon.evolution/species evolution-chain)
-                     :evolves-to (:pokemon.evolution/evolves-to evolution-chain)})))))
+                                 (evolution-chain-query id))]
+    (if (and (seq data) (get-chain data))
+      (let [evolution-chain (get-chain data)]
+        (d/div
+         {:style {:opacity (if loading? 0.6 1)}}
+         ($ evolution {:species (:pokemon.evolution/species evolution-chain)
+                       :evolves-to (:pokemon.evolution/evolves-to evolution-chain)})))
+      (if loading?
+        (d/div "Loading...")
+        "No evolution data"))))
 
 
 (defnc app
@@ -85,18 +92,24 @@
       {:on-click #(set-id dec)
        :disabled (= 1 id)}
       "Prev")
+     (d/input {:on-change #(set-id (js/parseInt (.. % -target -value)))
+               :value (str id)
+               :min 1
+               :type "number"})
      (d/button {:on-click #(set-id inc)} "Next")
-     (d/div
-      {:style {:opacity (if loading? 0.6 1)}}
-      (d/img {:src (-> (first data)
-                       (val)
-                       (get-in [:pokemon/sprites
-                                :pokemon.sprites/front-default]))})
-      (d/code
-       (d/pre
-        {:style {:display "inline-block"}}
-        (with-out-str
-          (pprint data)))))
+     (if (seq data)
+       (d/div
+        {:style {:opacity (if loading? 0.6 1)}}
+        (d/img {:src (-> (first data)
+                         (val)
+                         (get-in [:pokemon/sprites
+                                  :pokemon.sprites/front-default]))})
+        (d/code
+         (d/pre
+          {:style {:display "inline-block"}}
+          (with-out-str
+            (pprint data)))))
+       (d/div "Pokemon not found"))
      (d/div
       (d/button
        {:on-click #(set-show-evolution-chain not)}
