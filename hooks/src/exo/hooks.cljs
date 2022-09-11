@@ -82,6 +82,22 @@
       :refetch load})))
 
 
+(defn use-deferred-query
+  ([query] (use-deferred-query query nil))
+  ([query opts]
+   (let [result (use-query query opts)
+         ^js prev-data (r/useRef (:data result))]
+     (r/useEffect
+      (fn []
+        (when-not (:loading? result)
+          (set! (.-current prev-data) (:data result)))
+        js/undefined)
+      #js [(:loading? result) (:data result)])
+     (if (:loading? result)
+       (assoc result :data (.-current prev-data))
+       result))))
+
+
 (defn use-config
   []
   (r/useContext exo-config-context))

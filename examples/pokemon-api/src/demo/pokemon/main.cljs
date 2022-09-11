@@ -61,23 +61,25 @@
 
 (defnc evolutions
   [{:keys [id]}]
-  (let [{:keys [data]} (exo.hooks/use-query (evolution-chain-query id))
-        evolution-chain (get-in
-                         data
-                         [[:pokemon/id id]
-                          :pokemon.species/evolution-chain
-                          :pokemon.evolution/chain])]
+  (let [{:keys [data loading?]} (exo.hooks/use-deferred-query
+                                 (evolution-chain-query id))
+        evolution-chain (-> (first data) ; we don't depend on the id, so we can
+                            (val) ; render previous query results during fetch
+                            (get-in [:pokemon.species/evolution-chain
+                                     :pokemon.evolution/chain]))]
     (if (empty? evolution-chain)
       (d/div "Loading...")
-      ($ evolution {:species (:pokemon.evolution/species evolution-chain)
-                    :evolves-to (:pokemon.evolution/evolves-to evolution-chain)}))))
+      (d/div
+       {:style {:opacity (if loading? 0.6 1)}}
+       ($ evolution {:species (:pokemon.evolution/species evolution-chain)
+                     :evolves-to (:pokemon.evolution/evolves-to evolution-chain)})))))
 
 
 (defnc app
   []
   (let [[id set-id] (hooks/use-state 1)
         [show-evolution-chain? set-show-evolution-chain] (hooks/use-state false)
-        {:keys [data]} (exo.hooks/use-query (pokemon-query id))]
+        {:keys [data loading?]} (exo.hooks/use-deferred-query (pokemon-query id))]
     (d/div
      (d/button
       {:on-click #(set-id dec)
@@ -85,7 +87,11 @@
       "Prev")
      (d/button {:on-click #(set-id inc)} "Next")
      (d/div
-      (d/img {:src (get-in data [[:pokemon/id id] :pokemon/sprites :pokemon.sprites/front-default])})
+      {:style {:opacity (if loading? 0.6 1)}}
+      (d/img {:src (-> (first data)
+                       (val)
+                       (get-in [:pokemon/sprites
+                                :pokemon.sprites/front-default]))})
       (d/code
        (d/pre
         {:style {:display "inline-block"}}
