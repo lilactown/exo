@@ -9,11 +9,6 @@
    [helix.hooks :as hooks]
    ["react-dom/client" :as rdom]))
 
-(defonce exo-config
-  (exo/create-config
-   {:network (fn [query _opts]
-               (api/fetch-query query))}))
-
 
 (defn pokemon-query
   [id]
@@ -82,11 +77,29 @@
         "No evolution data"))))
 
 
+(defnc pokemon
+  [{:keys [id]}]
+  (let [{:keys [data loading?]}(exo.hooks/use-deferred-query (pokemon-query id))]
+    (if (seq data)
+      (d/div
+       {:style {:opacity (if loading? 0.6 1)}}
+       (d/img {:src (-> (first data)
+                        (val)
+                        (get-in [:pokemon/sprites
+                                 :pokemon.sprites/front-default]))})
+       (d/code
+        (d/pre
+         {:style {:display "inline-block"}}
+         (with-out-str
+           (pprint data)))))
+      (d/div "Pokemon not found"))))
+
+
 (defnc app
   []
   (let [[id set-id] (hooks/use-state 1)
         [show-evolution-chain? set-show-evolution-chain] (hooks/use-state false)
-        {:keys [data loading?]} (exo.hooks/use-deferred-query (pokemon-query id))]
+        ]
     (d/div
      (d/button
       {:on-click #(set-id dec)
@@ -97,19 +110,7 @@
                :min 1
                :type "number"})
      (d/button {:on-click #(set-id inc)} "Next")
-     (if (seq data)
-       (d/div
-        {:style {:opacity (if loading? 0.6 1)}}
-        (d/img {:src (-> (first data)
-                         (val)
-                         (get-in [:pokemon/sprites
-                                  :pokemon.sprites/front-default]))})
-        (d/code
-         (d/pre
-          {:style {:display "inline-block"}}
-          (with-out-str
-            (pprint data)))))
-       (d/div "Pokemon not found"))
+     ($ pokemon {:id id})
      (d/div
       (d/button
        {:on-click #(set-show-evolution-chain not)}
@@ -117,6 +118,16 @@
       (when show-evolution-chain?
         ($ evolutions {:id id}))))))
 
+
+;;
+;; App setup
+;;
+
+
+(defonce exo-config
+  (exo/create-config
+   {:network (fn [query _opts]
+               (api/fetch-query query))}))
 
 (defonce root (rdom/createRoot (js/document.getElementById "app")))
 
