@@ -12,7 +12,7 @@
 (def pokemon-key-map
   {["is_default"] :pokemon/default?
    ["species"] :pokemon/species
-   ["species" "name"] :pokemon.species/name
+   ["species" "name"] :pokemon/name
    ["species" "url"] :pokemon.species/url
    ["height"] :pokemon/height
    ["forms"] :pokemon/forms
@@ -133,7 +133,7 @@
 
 
 (pco/defresolver species-by-name
-  [{:keys [pokemon.species/name]}]
+  [{:keys [pokemon/name]}]
   {::pco/output species-attrs}
   (-> (fetch/request
        (str "https://pokeapi.co/api/v2/pokemon-species/" name "/")
@@ -154,8 +154,9 @@
 (pco/defresolver evolution-by-id
   [{:keys [pokemon.evolution/id]}]
   {::pco/output [:pokemon.evolution/id
-                 {:pokemon.evolution/chain [:pokemon.evolution/evolves-to
-                                            :pokemon.evolution/species]}]}
+                 {:pokemon.evolution/chain
+                  [:pokemon.evolution/evolves-to
+                   :pokemon.evolution/species]}]}
   (-> (fetch/request
        (str "https://pokeapi.co/api/v2/evolution-chain/" id "/")
        :content-type :json
@@ -212,7 +213,7 @@
        '[{[:pokemon/name "venusaur"]
           [:pokemon/name :pokemon/id
            {:pokemon/species
-            [:pokemon.species/name
+            [:pokemon/name
              :pokemon.species/mythical?
              {:pokemon.species/evolution-chain
               [:pokemon.evolution/id

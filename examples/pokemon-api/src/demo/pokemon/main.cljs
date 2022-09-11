@@ -26,23 +26,22 @@
 
 (defn evolution-chain-query
   [id]
-  [{[:pokemon/id id] #_[:pokemon/id :pokemon/species]
+  [{[:pokemon/id id]
     [:pokemon/id
-     {:pokemon/species
-      [:pokemon/name
-       {:pokemon.species/evolution-chain
-        [:pokemon.evolution/id
-         {:pokemon.evolution/chain
+     :pokemon/name
+     {:pokemon.species/evolution-chain
+      [:pokemon.evolution/id
+       {:pokemon.evolution/chain
+        [{:pokemon.evolution/species
+          [:pokemon/name
+           :pokemon/id
+           {:pokemon/sprites [:pokemon.sprites/front-default]}]}
+         {:pokemon.evolution/evolves-to
           [{:pokemon.evolution/species
             [:pokemon/name
              :pokemon/id
              {:pokemon/sprites [:pokemon.sprites/front-default]}]}
-           {:pokemon.evolution/evolves-to
-            [{:pokemon.evolution/species
-              [:pokemon/name
-               :pokemon/id
-               {:pokemon/sprites [:pokemon.sprites/front-default]}]}
-             {:pokemon.evolution/evolves-to '...}]}]}]}]}]}])
+           {:pokemon.evolution/evolves-to '...}]}]}]}]}])
 
 
 (defnc evolution
@@ -62,11 +61,10 @@
 
 (defnc evolutions
   [{:keys [id]}]
-  (let [{:keys [data loading?]} (exo.hooks/use-query (evolution-chain-query id))
+  (let [{:keys [data]} (exo.hooks/use-query (evolution-chain-query id))
         evolution-chain (get-in
                          data
                          [[:pokemon/id id]
-                          :pokemon/species
                           :pokemon.species/evolution-chain
                           :pokemon.evolution/chain])]
     (if (empty? evolution-chain)
@@ -79,7 +77,7 @@
   []
   (let [[id set-id] (hooks/use-state 1)
         [show-evolution-chain? set-show-evolution-chain] (hooks/use-state false)
-        {:keys [data loading?]} (exo.hooks/use-query (pokemon-query id))]
+        {:keys [data]} (exo.hooks/use-query (pokemon-query id))]
     (d/div
      (d/button
       {:on-click #(set-id dec)
