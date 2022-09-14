@@ -10,12 +10,17 @@
    ["react-dom/client" :as rdom]))
 
 
+;;
+;; Queries
+;;
+
 (defn pokemon-query
   [id]
   [{[:pokemon/id id] [:pokemon/name
                       :pokemon/id
                       :pokemon/height
                       :pokemon/weight
+                      {:pokemon/types [{:pokemon.type/info [:pokemon.type/name]}]}
                       {:pokemon/sprites [:pokemon.sprites/front-default]}]}])
 
 
@@ -39,10 +44,37 @@
            {:pokemon.evolution/evolves-to '...}]}]}]}]}])
 
 
+;;
+;; Components
+;;
+
+
+(defnc pokemon
+  "Fetch and show basic information about a pokemon."
+  [{:keys [id]}]
+  ;; use-deferred-query returns previous results while fetching, giving us a
+  ;; less jarring user experience
+  (let [{:keys [data loading?]} (exo.hooks/use-deferred-query (pokemon-query id))]
+    (if (seq data)
+      (d/div
+       {:style {:opacity (if loading? 0.6 1)}}
+       (d/img {:src (-> (first data) ;; {[:pokemon/id 1] {,,,}}
+                        (val)
+                        (get-in [:pokemon/sprites
+                                 :pokemon.sprites/front-default]))})
+       (d/code
+        (d/pre
+         {:style {:display "inline-block"}}
+         (with-out-str
+           (pprint data)))))
+      (d/div "Pokemon not found"))))
+
+
 (defnc evolution
+  "A simple component that shows the evolution chain based on data passed in"
   [{:keys [species evolves-to]}]
   (d/div
-   {:style {:padding-left 15
+   {:style {:padding-left 25
             :border-left "1px dotted gray"}}
    (d/img {:src (get-in species [:pokemon/sprites :pokemon.sprites/front-default])})
    (d/pre
@@ -63,6 +95,8 @@
 
 
 (defnc evolutions
+  "A component that fetches the evolution chain on mount and subscribes to
+  changes. Handles loading states."
   [{:keys [id]}]
   (let [{:keys [data loading?]} (exo.hooks/use-deferred-query
                                  (evolution-chain-query id))]
@@ -74,32 +108,13 @@
                        :evolves-to (:pokemon.evolution/evolves-to evolution-chain)})))
       (if loading?
         (d/div "Loading...")
-        "No evolution data"))))
-
-
-(defnc pokemon
-  [{:keys [id]}]
-  (let [{:keys [data loading?]}(exo.hooks/use-deferred-query (pokemon-query id))]
-    (if (seq data)
-      (d/div
-       {:style {:opacity (if loading? 0.6 1)}}
-       (d/img {:src (-> (first data)
-                        (val)
-                        (get-in [:pokemon/sprites
-                                 :pokemon.sprites/front-default]))})
-       (d/code
-        (d/pre
-         {:style {:display "inline-block"}}
-         (with-out-str
-           (pprint data)))))
-      (d/div "Pokemon not found"))))
+        (d/div "No evolution data.")))))
 
 
 (defnc app
   []
   (let [[id set-id] (hooks/use-state 1)
-        [show-evolution-chain? set-show-evolution-chain] (hooks/use-state false)
-        ]
+        [show-evolution-chain? set-show-evolution-chain] (hooks/use-state false)]
     (d/div
      (d/button
       {:on-click #(set-id dec)

@@ -35,7 +35,7 @@
    ["sprites" "front_shiny_female"] :pokemon.sprites/front-shiny-female
    ["types"] :pokemon/types
    ["types" "slot"] :pokemon.type/slot
-   ["types" "type"] :pokmeon.type/info
+   ["types" "type"] :pokemon.type/info
    ["types" "type" "name"] :pokemon.type/name
    ["types" "type" "url"] :pokemon.type/url
    ["name"] :pokemon/name
