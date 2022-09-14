@@ -11,4 +11,4 @@ export PATH=$PWD/jdk-11.0.16.1+1/bin:$PATH
 
 java -version
 
-npx shadow-cljs releas app
+npx shadow-cljs release app
