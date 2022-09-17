@@ -11,6 +11,18 @@
 
 
 ;;
+;; App setup
+;;
+
+(defonce exo-config
+  (exo/create-config
+   {:network (fn [query _opts]
+               (api/fetch-query query))}))
+
+(defonce root (rdom/createRoot (js/document.getElementById "app")))
+
+
+;;
 ;; Queries
 ;;
 
@@ -117,14 +129,20 @@
         [show-evolution-chain? set-show-evolution-chain] (hooks/use-state false)]
     (d/div
      (d/button
-      {:on-click #(set-id dec)
+      {:on-click (fn [_]
+                   (set-id dec)
+                   (exo/preload! exo-config (pokemon-query (dec id))))
        :disabled (= 1 id)}
       "Prev")
      (d/input {:on-change #(set-id (js/parseInt (.. % -target -value)))
                :value (str id)
                :min 1
                :type "number"})
-     (d/button {:on-click #(set-id inc)} "Next")
+     (d/button
+      {:on-click (fn [_]
+                   (set-id inc)
+                   (exo/preload! exo-config (pokemon-query (inc id))))}
+      "Next")
      ($ pokemon {:id id})
      (d/div
       (d/button
@@ -133,18 +151,6 @@
       (when show-evolution-chain?
         ($ evolutions {:id id}))))))
 
-
-;;
-;; App setup
-;;
-
-
-(defonce exo-config
-  (exo/create-config
-   {:network (fn [query _opts]
-               (api/fetch-query query))}))
-
-(defonce root (rdom/createRoot (js/document.getElementById "app")))
 
 (defn ^:dev/after-load reload
   []
