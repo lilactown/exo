@@ -55,3 +55,16 @@ use-fragment returns a map-like that has metadata on what fragments are containe
 
 Moving part of a query into a fragment is a breaking change... how to detect
 breakage without static typing?
+
+## Tech notes
+
+3 stages
+1. creating query for fetching
+2. caching fetch results
+3. subscribing to cache
+
+For 1 and 2, we need the full normal query. For 3, we need to differentiate
+between fragment and non-fragment query slices.
+
+In this way, perhaps all we need to do is demask the query when fetching and
+caching, and then mask the cache results when returning it to the user.
