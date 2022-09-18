@@ -130,7 +130,7 @@
      (d/button
       {:on-click (fn [_]
                    (set-id dec)
-                   (exo/preload! exo-config (pokemon-query (dec id))))
+                   (exo/preload! exo-config (pokemon-query-by-id (dec id))))
        :disabled (= 1 id)}
       "Prev")
      (d/input {:on-change #(set-id (js/parseInt (.. % -target -value)))
@@ -140,7 +140,7 @@
      (d/button
       {:on-click (fn [_]
                    (set-id inc)
-                   (exo/preload! exo-config (pokemon-query (inc id))))}
+                   (exo/preload! exo-config (pokemon-query-by-id (inc id))))}
       "Next")
      ($ pokemon {:pokemon-ref pokemon-ref})
      (d/div
@@ -158,4 +158,4 @@
 
 (defn start
   []
-  (.then (exo/preload! exo-config (pokemon-query 1)) #(reload)))
+  (.then (exo/preload! exo-config (pokemon-query-by-id 1)) #(reload)))
