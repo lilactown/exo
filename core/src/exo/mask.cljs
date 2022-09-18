@@ -8,9 +8,11 @@
 
 
 (defn fragment
-  ([q] (fragment (gensym "fragment") q))
-  ([id q]
-   (with-meta q {:component #(->Mask id q %)})))
+  ([eql] (fragment (gensym "fragment") eql))
+  ([id eql]
+   (with-meta eql {:component #(->Mask id eql %)
+                   :fragment/id id
+                   :fragment/eql eql})))
 
 
 (comment
@@ -19,7 +21,7 @@
   (def query [{:foo baz-fragment}])
   (def results (p/pull db query))
 
-  (-> results :foo .-id)
+  (-> results :foo .-result)
 
 
 

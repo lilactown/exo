@@ -4,6 +4,7 @@
    ["use-sync-external-store/shim" :refer [useSyncExternalStore]]
    [exo.core :as exo]
    [exo.data]
+   [exo.mask]
    [exo.network.core :as net]
    [goog.object :as gobj]))
 
@@ -17,6 +18,12 @@
    (gobj/get exo-config-context "Provider")
    #js {:value (gobj/get props "config")}
    (gobj/get props "children")))
+
+
+(defn use-fragment
+  [^exo.mask/Mask fragment-ref fragment]
+  (when fragment-ref
+    (.-result fragment-ref)))
 
 
 (defn use-query

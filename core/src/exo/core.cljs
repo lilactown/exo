@@ -2,6 +2,7 @@
   (:require
    [clojure.string :as string]
    [exo.data :as data]
+   [exo.mask]
    [exo.network.core :as net]
    [edn-query-language.core :as eql]
    [clojure.zip :as zip]))
@@ -106,6 +107,9 @@
        (remove-watch request-store outer-key)
        (when-let [*req @current-req]
          (remove-watch *req inner-key))))))
+
+
+(def fragment exo.mask/fragment)
 
 
 (defn- make-node
