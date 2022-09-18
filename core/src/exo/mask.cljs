@@ -4,13 +4,19 @@
    [edn-query-language.core :as eql]))
 
 
-(deftype Mask [id eql result])
+(defrecord Mask [eql lookup-ref])
+
+
+(defn ->mask
+  [eql db result]
+  (let [lookup-ref (p/identify db result)]
+    (->Mask eql lookup-ref)))
 
 
 (defn fragment
   ([eql] (fragment (gensym "fragment") eql))
   ([id eql]
-   (with-meta eql {:component #(->Mask id eql %)
+   (with-meta eql {:component #(->mask eql %1 %2)
                    :fragment/id id
                    :fragment/eql eql})))
 

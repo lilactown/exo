@@ -20,12 +20,6 @@
    (gobj/get props "children")))
 
 
-(defn use-fragment
-  [^exo.mask/Mask fragment-ref fragment]
-  (when fragment-ref
-    (.-result fragment-ref)))
-
-
 (defn use-query
   ([query] (use-query query nil))
   ([query {:keys [enabled?]
@@ -103,6 +97,45 @@
      (if (:loading? result)
        (assoc result :data (.-current prev-data))
        result))))
+
+
+(defn use-fragment
+  [^exo.mask/Mask mask fragment]
+  (let [lookup-ref (.-lookup-ref mask)
+        eql (.-eql mask)
+        query [{lookup-ref (with-meta eql {})}]
+        config (r/useContext exo-config-context)
+        query-hash (hash query)
+        ;; we need to provide a synchronous, unscoped way of getting the results
+        ;; of a query, rather than relying on subscribe! to pass the value to
+        ;; some callback.
+        ;; we use a ref as that store in lieu of a way to just get a memoized
+        ;; result of a query from the exo data-cache
+        ;; TODO cache whole result in data-cache so that we don't rely on pull
+        ^js results-store (r/useRef
+                           ;; memoize this on mount because it's expensive
+                           (r/useMemo
+                            #(exo.data/pull
+                              (:data-cache config)
+                              query)
+                            #js []))
+        subscribe-data
+        (r/useCallback
+         (fn [cb]
+           (let [[result unsub] (exo.data/subscribe!
+                                 (:data-cache config) query
+                                 (fn [result]
+                                   (when (not= (.-current results-store) result)
+                                     (set! (.-current results-store) result))
+                                   (cb)))]
+             ;; we may have subscribed before initiating getting data,
+             ;; so if we have results put them in the store now
+             (when (not= (.-current results-store) result)
+               (set! (.-current results-store) result))
+             unsub))
+         #js [query-hash config])
+        data (useSyncExternalStore subscribe-data #(.-current results-store))]
+    (get data lookup-ref)))
 
 
 (defn use-config
