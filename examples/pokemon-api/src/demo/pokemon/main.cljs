@@ -26,14 +26,14 @@
 ;; Queries
 ;;
 
+(def pokemon-fragment
+  (exo/fragment [:pokemon/id :pokemon/name :pokemon/height :pokemon/weight
+                 {:pokemon/sprites [:pokemon.sprites/front-default]}]))
+
+
 (defn pokemon-query
   [id]
-  [{[:pokemon/id id] [:pokemon/name
-                      :pokemon/id
-                      :pokemon/height
-                      :pokemon/weight
-                      {:pokemon/types [{:pokemon.type/info [:pokemon.type/name]}]}
-                      {:pokemon/sprites [:pokemon.sprites/front-default]}]}])
+  [{[:pokemon/id id] pokemon-fragment}])
 
 
 (defn evolution-chain-query
@@ -44,16 +44,10 @@
      {:pokemon.species/evolution-chain
       [:pokemon.evolution/id
        {:pokemon.evolution/chain
-        [{:pokemon.evolution/species
-          [:pokemon/name
-           :pokemon/id
-           {:pokemon/sprites [:pokemon.sprites/front-default]}]}
+        [{:pokemon.evolution/species pokemon-fragment}
          {:pokemon.evolution/evolves-to
-          [{:pokemon.evolution/species
-            [:pokemon/name
-             :pokemon/id
-             {:pokemon/sprites [:pokemon.sprites/front-default]}]}
-           {:pokemon.evolution/evolves-to '...}]}]}]}]}])
+           [{:pokemon.evolution/species pokemon-fragment}
+            {:pokemon.evolution/evolves-to '...}]}]}]}]}])
 
 
 ;;
@@ -66,36 +60,38 @@
   [{:keys [id]}]
   ;; use-deferred-query returns previous results while fetching, giving us a
   ;; less jarring user experience
-  (let [{:keys [data loading?]} (exo.hooks/use-deferred-query (pokemon-query id))]
+  (let [{:keys [data loading?]} (exo.hooks/use-deferred-query (pokemon-query id))
+        pokemon-data (-> (first data) ;; {[:pokemon/id 1] {,,,}}
+                         (val)
+                         (exo.hooks/use-fragment pokemon-fragment))]
     (if (seq data)
       (d/div
        {:style {:opacity (if loading? 0.6 1)}}
-       (d/img {:src (-> (first data) ;; {[:pokemon/id 1] {,,,}}
-                        (val)
-                        (get-in [:pokemon/sprites
-                                 :pokemon.sprites/front-default]))})
+       (d/img {:src (get-in pokemon-data [:pokemon/sprites
+                                          :pokemon.sprites/front-default])})
        (d/code
         (d/pre
          {:style {:display "inline-block"}}
          (with-out-str
-           (pprint data)))))
+           (pprint pokemon-data)))))
       (d/div "Pokemon not found"))))
 
 
 (defnc evolution
   "A simple component that shows the evolution chain based on data passed in"
-  [{:keys [species evolves-to]}]
-  (d/div
-   {:style {:padding-left 25
-            :border-left "1px dotted gray"}}
-   (d/img {:src (get-in species [:pokemon/sprites :pokemon.sprites/front-default])})
-   (d/pre
-    {:style {:display "inline-block"}}
-    (with-out-str (pprint species)))
-   (for [evolves evolves-to]
-     ($ evolution {:key (get-in evolves [:pokemon.evolution/species :pokemon/name])
-                   :species (:pokemon.evolution/species evolves)
-                   :evolves-to (:pokemon.evolution/evolves-to evolves)}))))
+  [{:keys [pokemon-ref evolves-to]}]
+  (let [species (exo.hooks/use-fragment pokemon-ref pokemon-fragment)]
+    (d/div
+     {:style {:padding-left 25
+              :border-left "1px dotted gray"}}
+     (d/img {:src (get-in species [:pokemon/sprites :pokemon.sprites/front-default])})
+     (d/pre
+      {:style {:display "inline-block"}}
+      (with-out-str (pprint species)))
+     (for [evolves evolves-to]
+       ($ evolution {:key (get-in evolves [:pokemon.evolution/species :pokemon/name])
+                     :pokemon-ref (:pokemon.evolution/species evolves)
+                     :evolves-to (:pokemon.evolution/evolves-to evolves)})))))
 
 
 (defn- get-chain
@@ -116,7 +112,7 @@
       (let [evolution-chain (get-chain data)]
         (d/div
          {:style {:opacity (if loading? 0.6 1)}}
-         ($ evolution {:species (:pokemon.evolution/species evolution-chain)
+         ($ evolution {:pokemon-ref (:pokemon.evolution/species evolution-chain)
                        :evolves-to (:pokemon.evolution/evolves-to evolution-chain)})))
       (if loading?
         (d/div "Loading...")
