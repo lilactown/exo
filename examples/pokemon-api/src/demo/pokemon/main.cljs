@@ -57,16 +57,13 @@
 
 (defnc pokemon
   "Fetch and show basic information about a pokemon."
-  [{:keys [id]}]
+  [{:keys [pokemon-ref]}]
   ;; use-deferred-query returns previous results while fetching, giving us a
   ;; less jarring user experience
-  (let [{:keys [data loading?]} (exo.hooks/use-deferred-query (pokemon-query id))
-        pokemon-data (-> (first data) ;; {[:pokemon/id 1] {,,,}}
-                         (val)
-                         (exo.hooks/use-fragment pokemon-fragment))]
-    (if (seq data)
+  (let [pokemon-data (exo.hooks/use-fragment pokemon-ref pokemon-fragment)]
+    (prn :render)
+    (if (seq pokemon-data)
       (d/div
-       {:style {:opacity (if loading? 0.6 1)}}
        (d/img {:src (get-in pokemon-data [:pokemon/sprites
                                           :pokemon.sprites/front-default])})
        (d/code
@@ -122,8 +119,12 @@
 (defnc app
   []
   (let [[id set-id] (hooks/use-state 1)
-        [show-evolution-chain? set-show-evolution-chain] (hooks/use-state false)]
+        [show-evolution-chain? set-show-evolution-chain] (hooks/use-state false)
+        {:keys [data loading?]} (exo.hooks/use-deferred-query (pokemon-query id))
+        ;; {[:pokemon/id 1] {,,,}}
+        pokemon-ref (val (first data))]
     (d/div
+     {:style {:opacity (if loading? 0.6 1)}}
      (d/button
       {:on-click (fn [_]
                    (set-id dec)
@@ -139,7 +140,7 @@
                    (set-id inc)
                    (exo/preload! exo-config (pokemon-query (inc id))))}
       "Next")
-     ($ pokemon {:id id})
+     ($ pokemon {:pokemon-ref pokemon-ref})
      (d/div
       (d/button
        {:on-click #(set-show-evolution-chain not)}
