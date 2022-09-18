@@ -27,16 +27,17 @@
 ;;
 
 (def pokemon-fragment
-  (exo/fragment [:pokemon/id :pokemon/name :pokemon/height :pokemon/weight
-                 {:pokemon/sprites [:pokemon.sprites/front-default]}]))
+  (exo/fragment
+   [:pokemon/id :pokemon/name :pokemon/height :pokemon/weight
+    {:pokemon/sprites [:pokemon.sprites/front-default]}]))
 
 
-(defn pokemon-query
+(defn pokemon-query-by-id
   [id]
   [{[:pokemon/id id] pokemon-fragment}])
 
 
-(defn evolution-chain-query
+(defn evolution-chain-query-by-id
   [id]
   [{[:pokemon/id id]
     [:pokemon/id
@@ -104,7 +105,7 @@
   changes. Handles loading states."
   [{:keys [id]}]
   (let [{:keys [data loading?]} (exo.hooks/use-deferred-query
-                                 (evolution-chain-query id))]
+                                 (evolution-chain-query-by-id id))]
     (if (and (seq data) (get-chain data))
       (let [evolution-chain (get-chain data)]
         (d/div
@@ -120,7 +121,8 @@
   []
   (let [[id set-id] (hooks/use-state 1)
         [show-evolution-chain? set-show-evolution-chain] (hooks/use-state false)
-        {:keys [data loading?]} (exo.hooks/use-deferred-query (pokemon-query id))
+        {:keys [data loading?]} (exo.hooks/use-deferred-query
+                                 (pokemon-query-by-id id))
         ;; {[:pokemon/id 1] {,,,}}
         pokemon-ref (val (first data))]
     (d/div
