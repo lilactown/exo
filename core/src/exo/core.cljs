@@ -1,11 +1,11 @@
 (ns exo.core
   (:require
    [clojure.string :as string]
+   [clojure.zip :as zip]
    [exo.data :as data]
-   [exo.mask]
    [exo.network.core :as net]
    [edn-query-language.core :as eql]
-   [clojure.zip :as zip]))
+   [pyramid.core :as p]))
 
 
 (defn create-config
@@ -109,7 +109,38 @@
          (remove-watch *req inner-key))))))
 
 
-(def fragment exo.mask/fragment)
+(defrecord Mask [eql lookup-ref])
+
+
+(defn ->mask
+  [eql db result]
+  (let [lookup-ref (p/identify db result)]
+    (->Mask eql lookup-ref)))
+
+
+(defn fragment
+  ([eql] (fragment (gensym "fragment") eql))
+  ([id eql]
+   (with-meta eql {:visitor #(->mask eql %1 %2)
+                   :fragment/id id
+                   :fragment/eql eql})))
+
+
+(comment
+  (def db {:foo {:bar 123 :baz 456}})
+  (def baz-fragment (fragment `Baz [:baz]))
+  (def query [{:foo baz-fragment}])
+  (def results (p/pull db query))
+
+
+  (def bar-baz-frag (fragment nil [:bar :baz]))
+
+  (p/pull db [{:foo [:bar :baz]}])
+  ;; => {:foo {:bar 123, :baz 456}}
+
+  (p/pull db [{:foo bar-baz-frag}])
+  ;; => {:foo #object[exo.mask.Mask]}
+  )
 
 
 (defn- make-node

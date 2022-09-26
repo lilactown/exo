@@ -4,7 +4,6 @@
    ["use-sync-external-store/shim" :refer [useSyncExternalStore]]
    [exo.core :as exo]
    [exo.data]
-   [exo.mask]
    [exo.network.core :as net]
    [goog.object :as gobj]))
 
@@ -100,7 +99,7 @@
 
 
 (defn use-fragment
-  [^exo.mask/Mask mask fragment]
+  [^exo.core/Mask mask fragment]
   (let [lookup-ref (.-lookup-ref mask)
         eql (.-eql mask)
         query [{lookup-ref (with-meta eql {})}]
