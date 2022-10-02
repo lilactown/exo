@@ -109,21 +109,19 @@
          (remove-watch *req inner-key))))))
 
 
-(defrecord Mask [eql lookup-ref])
+(defrecord FragmentRef [eql lookup-ref])
 
 
-(defn ->mask
+(defn ->fragment-ref
   [eql db result]
   (let [lookup-ref (p/identify db result)]
-    (->Mask eql lookup-ref)))
+    (->FragmentRef eql lookup-ref)))
 
 
 (defn fragment
-  ([eql] (fragment (gensym "fragment") eql))
-  ([id eql]
-   (with-meta eql {:visitor #(->mask eql %1 %2)
-                   :fragment/id id
-                   :fragment/eql eql})))
+  [eql]
+  (with-meta eql {:visitor #(->fragment-ref eql %1 %2)
+                  :fragment/eql eql}))
 
 
 (comment

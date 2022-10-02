@@ -99,7 +99,7 @@
 
 
 (defn use-fragment
-  [^exo.core/Mask mask fragment]
+  [^exo.core/FragmentRef mask fragment]
   (let [lookup-ref (.-lookup-ref mask)
         eql (.-eql mask)
         query [{lookup-ref (with-meta eql {})}]
