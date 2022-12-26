@@ -118,6 +118,35 @@
             "same index and same entities")
       (unsub1) (unsub2))))
 
+(t/deftest deletion
+  (let [dc (l.d/data-cache {} {})
+        query1 [{:foo [:id :bar]}]
+        test-dataB {:foo [{:id 1 :bar "baz" :asdf "jkl"}
+                          {:id 2 :bar "qux" :asdf "qwerty"}
+                          {:id 3 :bar "arst" :asdf "mneio"}]}
+        [calls1 f1] (spy)
+        [_data1 unsub1] (l.d/subscribe! dc query1 f1)]
+    (l.d/add-data! dc query1 test-dataB)
+    (t/is (= 1 (:count @calls1)))
+    (l.d/delete-entity! dc [:id 2])
+    (t/is (= {:id {1 {:id 1 :bar "baz" :asdf "jkl"}
+                   3 {:id 3 :bar "arst" :asdf "mneio"}}
+              :foo [[:id 1] [:id 3]]}
+             @dc)
+          "Data cache updated")
+    (t/is (= {:entities #{[:id 1] [:id 3]}
+              :indices #{:foo}}
+             (dissoc (get (.-query-watches dc) query1) :fs))
+          "Query watches updated")
+    (t/is (= {[:id 1] #{[{:foo [:id :bar]}]}
+              [:id 3] #{[{:foo [:id :bar]}]}}
+             (.-entity->queries dc))
+          "Entity->queries updated")
+    (t/is (= 2 (:count @calls1)))
+    (t/is (= {:foo [{:id 1 :bar "baz" }
+                    {:id 3 :bar "arst"}]}
+             (:data @calls1)))))
+
 (comment
   (t/run-tests)
   )

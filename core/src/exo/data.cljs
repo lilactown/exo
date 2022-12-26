@@ -11,6 +11,7 @@ Returns the result of running `query`")
   (-update-query-entities [o query entities]
     "Updates the set of entities that `queries` contains, to handle notifying
 watchers of `query` when `entities` change.")
+  (-delete-entity [o lookup-ref])
   (-notify-watches! [o query entities indices]
     "Notifies any watches of `query`, and any watches of queries that contain
 any of `entities` or `indices`, of changes.")
@@ -105,6 +106,18 @@ the last watcher."))
            (.-query-watches this)
            (assoc-in query-watches [query :entities] new-entities))))))
 
+  (-delete-entity [this lookup-ref]
+    (let [cache' (p/delete cache lookup-ref)
+          query-watches' (update-vals query-watches
+                                      (fn [m]
+                                        (update m :entities disj lookup-ref)))
+          entity->queries' (dissoc entity->queries lookup-ref)
+          queries (get entity->queries lookup-ref)]
+      (set! (.-cache this) cache')
+      (set! (.-query-watches this) query-watches')
+      (set! (.-entity->queries this) entity->queries')
+      queries))
+
   (-notify-watches! [_ query entities indices]
     (let [entity-fs (into
                      (get-in query-watches [query :fs])
@@ -142,6 +155,16 @@ the last watcher."))
       (-update-query-entities dc query entities)
       (-notify-watches! dc query entities indices))
     db))
+
+
+(defn delete-entity!
+  "Deletes an entity, removing it from the cache and updating all watches
+  associated with it."
+  [^IDataCache dc lookup-ref]
+  (let [queries (-delete-entity dc lookup-ref)]
+    (doseq [query queries]
+      (-notify-watches! dc query nil nil))
+    @dc))
 
 
 (defn pull

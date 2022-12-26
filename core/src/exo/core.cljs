@@ -4,7 +4,6 @@
    [clojure.zip :as zip]
    [exo.data :as data]
    [exo.network.core :as net]
-   [edn-query-language.core :as eql]
    [pyramid.core :as p]))
 
 
@@ -126,12 +125,12 @@
 
 (comment
   (def db {:foo {:bar 123 :baz 456}})
-  (def baz-fragment (fragment `Baz [:baz]))
+  (def baz-fragment (fragment [:baz]))
   (def query [{:foo baz-fragment}])
   (def results (p/pull db query))
 
 
-  (def bar-baz-frag (fragment nil [:bar :baz]))
+  (def bar-baz-frag (fragment [:bar :baz]))
 
   (p/pull db [{:foo [:bar :baz]}])
   ;; => {:foo {:bar 123, :baz 456}}
