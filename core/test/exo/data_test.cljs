@@ -118,16 +118,16 @@
             "same index and same entities")
       (unsub1) (unsub2))))
 
-(t/deftest deletion
+(t/deftest delete-entity!
   (let [dc (l.d/data-cache {} {})
-        query1 [{:foo [:id :bar]}]
-        test-dataB {:foo [{:id 1 :bar "baz" :asdf "jkl"}
+        query [{:foo [:id :bar]}]
+        test-data {:foo [{:id 1 :bar "baz" :asdf "jkl"}
                           {:id 2 :bar "qux" :asdf "qwerty"}
                           {:id 3 :bar "arst" :asdf "mneio"}]}
-        [calls1 f1] (spy)
-        [_data1 unsub1] (l.d/subscribe! dc query1 f1)]
-    (l.d/add-data! dc query1 test-dataB)
-    (t/is (= 1 (:count @calls1)))
+        [calls f] (spy)
+        [_data _unsub] (l.d/subscribe! dc query f)]
+    (l.d/add-data! dc query test-data)
+    (t/is (= 1 (:count @calls)))
     (l.d/delete-entity! dc [:id 2])
     (t/is (= {:id {1 {:id 1 :bar "baz" :asdf "jkl"}
                    3 {:id 3 :bar "arst" :asdf "mneio"}}
@@ -136,16 +136,65 @@
           "Data cache updated")
     (t/is (= {:entities #{[:id 1] [:id 3]}
               :indices #{:foo}}
-             (dissoc (get (.-query-watches dc) query1) :fs))
+             (dissoc (get (.-query-watches dc) query) :fs))
           "Query watches updated")
     (t/is (= {[:id 1] #{[{:foo [:id :bar]}]}
               [:id 3] #{[{:foo [:id :bar]}]}}
              (.-entity->queries dc))
           "Entity->queries updated")
-    (t/is (= 2 (:count @calls1)))
+    (t/is (= 2 (:count @calls)))
     (t/is (= {:foo [{:id 1 :bar "baz" }
                     {:id 3 :bar "arst"}]}
-             (:data @calls1)))))
+             (:data @calls)))))
+
+(t/deftest evict-query!
+  (t/testing "Single query"
+    (let [dc (l.d/data-cache {} {})
+          query [{:foo [:id :bar]}]
+          test-data {:foo [{:id 1 :bar "baz" :asdf "jkl"}
+                           {:id 2 :bar "qux" :asdf "qwerty"}
+                           {:id 3 :bar "arst" :asdf "mneio"}]}
+          [calls f] (spy)
+          [_data _unsub] (l.d/subscribe! dc query f)]
+      (l.d/add-data! dc query test-data)
+      (t/is (= 1 (:count @calls)))
+      (l.d/evict-query! dc query)
+      (t/is (= {:id {}} @dc)
+            "Data cache updated")
+      (t/is (= {:entities #{} :indices #{}}
+               (dissoc (get (.-query-watches dc) query) :fs))
+            "Query watches updated")
+      (t/is (= {}
+               (.-entity->queries dc))
+            "Entity->queries updated")
+      (t/is (= 2 (:count @calls)))))
+  (t/testing "Two queries that overlap entities"
+    (let [dc (l.d/data-cache {} {})
+          query1 [{:foo [:bar/id :baz]}]
+          query2 [{:asdf [:bar/id :baz :jkl]}]
+          test-data1 {:foo [{:bar/id 0 :baz 42}
+                            {:bar/id 1 :baz 100}]}
+          test-data2 {:asdf {:bar/id 0 :baz 42 :jkl "qwerty"}}
+          [query1-calls query1-f] (spy)
+          [query2-calls query2-f] (spy)
+          [_data1 _unsub1] (l.d/subscribe! dc query1 query1-f)
+          [_data2 _unsub2] (l.d/subscribe! dc query2 query2-f)]
+      (l.d/add-data! dc query1 test-data1)
+      (l.d/add-data! dc query2 test-data2)
+      (t/is (= 1 (:count @query1-calls)))
+      (t/is (= 1 (:count @query2-calls)))
+      (t/is (= {:bar/id {0 {:bar/id 0 :baz 42 :jkl "qwerty"}
+                         1 {:bar/id 1 :baz 100}}
+                :asdf [:bar/id 0]
+                :foo [[:bar/id 0] [:bar/id 1]]}
+               @dc))
+      (l.d/evict-query! dc query1)
+      (t/is (= {:bar/id {0 {:bar/id 0 :baz 42 :jkl "qwerty"}}
+                :asdf [:bar/id 0]}
+               @dc))
+      (t/is (= 2 (:count @query1-calls)))
+      (t/is (= 1 (:count @query2-calls))))))
+
 
 (comment
   (t/run-tests)

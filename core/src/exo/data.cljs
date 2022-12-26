@@ -167,6 +167,26 @@ the last watcher."))
     @dc))
 
 
+(defn evict-query!
+  "Evicts a query, clearing it from the cache and notifying subscribers."
+  [^IDataCache dc query]
+  (let [entities-to-rm (->> (.-entity->queries dc)
+                            (filter #(= #{query} (val %)))
+                            (map key))
+        {:keys [indices]} (get (.-query-watches dc) query)]
+    (doseq [entity entities-to-rm]
+      (-delete-entity dc entity))
+    ;; indices
+    (set! (.-cache dc)
+          (reduce (fn [cache index] (dissoc cache index))
+                  (.-cache dc)
+                  indices))
+    (set! (.-query-watches dc)
+          (assoc-in (.-query-watches dc) [query :indices] #{}))
+    (-notify-watches! dc query nil nil)
+    @dc))
+
+
 (defn pull
   [dc query]
   (p/pull @dc query))
