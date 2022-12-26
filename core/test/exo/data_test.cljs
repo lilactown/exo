@@ -14,7 +14,7 @@
 
 (t/deftest query-subscribe
   (t/testing "query without entities updates when data is added"
-    (let [dc (l.d/data-cache {} (atom {}) {})
+    (let [dc (l.d/data-cache {} {})
           query [{:foo [:bar]}]
           test-data {:foo {:bar "baz"}}
           [calls f] (spy)
@@ -31,7 +31,7 @@
         (t/is (= test-data (:data @calls))))))
 
   (t/testing "2 queries sharing entities both update when data is added for one"
-    (let [dc (l.d/data-cache {} (atom {}) {})
+    (let [dc (l.d/data-cache {} {})
           query1 [{:foo [:bar/id :baz]}]
           query2 [{:asdf [:bar/id :baz :jkl]}]
           test-data1 {:foo {:bar/id 0 :baz 42}}
@@ -98,7 +98,7 @@
         (t/is (empty? (get (.-entity->queries dc) [:bar/id 0]))
               "cleans up entity->queries relations"))))
   (t/testing "2 queries that share the same top-level index"
-    (let [dc (l.d/data-cache {} (atom {}) {})
+    (let [dc (l.d/data-cache {} {})
           query1 [{:foo [:id :bar]}]
           query2 [{:foo [:id :bar :asdf]}]
           test-dataA {:foo [{:id 1 :bar "baz" :asdf "jkl"}
@@ -117,104 +117,6 @@
       (t/is (= (:count @calls1) (:count @calls2))
             "same index and same entities")
       (unsub1) (unsub2))))
-
-
-(defn eventually
-  [f timeout]
-  (let [deadline (+ (js/performance.now) timeout)
-        cb (fn cb [res rej]
-             (let [ret (f)]
-               (cond
-                 ret (res ret)
-                 (>= (js/performance.now) deadline) (rej (ex-info "Timeout" {}))
-                 ;; do a macrotask
-                 :else (js/setTimeout #(cb res rej)))))]
-    (js/Promise. cb)))
-
-
-#_(-> (eventually
-     (let [count (atom 0)]
-       (fn []
-         (swap! count inc)
-         (when (= 100 @count)
-           true)))
-     1000)
-    (.then #(prn :success %))
-    (.catch #(prn :error %)))
-
-
-(t/deftest cache-eviction
-  (t/testing "adds entity to queue"
-    (let [janitor (atom {})
-          dc (l.d/data-cache {} janitor {})
-          query [{:foo [:id :bar]}]
-          test-data {:foo [{:id 1 :bar "baz" :asdf "jkl"}
-                           {:id 2 :bar "qux" :asdf "qwerty"}]}
-          [_calls f] (spy)
-          [_data unsub] (l.d/subscribe! dc query f)]
-      (l.d/add-data! dc query test-data)
-      (t/is (empty? @janitor))
-      (unsub)
-      (t/is (get @janitor [:id 1]))
-      (t/is (get @janitor [:id 2]))))
-  (t/testing "sweep"
-    (t/async
-     done
-     (let [janitor (l.d/janitor)
-           time-to-keep 500
-           dc (l.d/data-cache {} janitor {:janitor/time-to-keep time-to-keep})
-           query [{:foo [:id :bar]}]
-           test-data {:foo [{:id 1 :bar "baz" :asdf "jkl"}
-                            {:id 2 :bar "qux" :asdf "qwerty"}]}
-           [_calls f] (spy)
-           [_data unsub] (l.d/subscribe! dc query f)
-           min-wait (+ time-to-keep (js/performance.now))]
-       (l.d/add-data! dc query test-data)
-       (unsub)
-       (t/is (get-in @dc [:id 1]))
-       (t/is (get-in @dc [:id 2]))
-       (-> (eventually
-            #(and
-              (not (get-in @dc [:id 1]))
-              (not (get-in @dc [:id 2]))
-              (empty? (get @dc :foo)))
-            (* time-to-keep 2))
-           (.then #(t/is (>= (js/performance.now) min-wait)
-                         "cleanup")
-                  #(t/is false "cleanup"))
-           (.then done done))))))
-
-
-(t/deftest cancel-cache-eviction
-  (t/async
-   done
-   (let [janitor (l.d/janitor)
-         time-to-keep 500
-         dc (l.d/data-cache {} janitor {:janitor/time-to-keep time-to-keep})
-         query [{:foo [:id :bar]}]
-         test-data {:foo [{:id 1 :bar "baz" :asdf "jkl"}
-                          {:id 2 :bar "qux" :asdf "qwerty"}]}
-         [_calls f] (spy)
-         [_data unsub] (l.d/subscribe! dc query f)]
-     (l.d/add-data! dc query test-data)
-     (unsub)
-     ;; re-subscribe some time in the future before the time-to-keep is over
-     (js/setTimeout
-        (fn []
-          (l.d/subscribe! dc query f))
-        (/ time-to-keep 2))
-     (-> (eventually
-          #(and
-            (not (get-in @dc [:id 1]))
-            (not (get-in @dc [:id 2]))
-            (empty? (get @dc :foo)))
-          (* time-to-keep 2))
-         (.then #(do (t/is false "canceled cleanup")
-                     (t/is (empty? @janitor)))
-                #(do (t/is true "canceled cleanup")
-                     (t/is (empty? @janitor))))
-         (.then done done)))))
-
 
 (comment
   (t/run-tests)
